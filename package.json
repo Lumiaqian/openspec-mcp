@@ -1,0 +1,51 @@
+{
+  "name": "openspec-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for OpenSpec - spec-driven development with real-time dashboard and approval workflow",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "openspec-mcp": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "start:dashboard": "node dist/index.js --dashboard",
+    "lint": "eslint src/",
+    "test": "vitest",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "mcp",
+    "openspec",
+    "spec-driven",
+    "development",
+    "ai",
+    "claude"
+  ],
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.13.3",
+    "chokidar": "^3.5.3",
+    "commander": "^12.0.0",
+    "fastify": "^4.24.0",
+    "@fastify/websocket": "^8.2.0",
+    "@fastify/cors": "^9.0.0",
+    "@fastify/static": "^7.0.0",
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "tsx": "^4.0.0",
+    "vitest": "^1.0.0",
+    "eslint": "^8.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0"
+  }
+}

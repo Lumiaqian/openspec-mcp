@@ -1,0 +1,206 @@
+import { useState, useEffect } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import { changesApi, tasksApi } from '../api/client';
+
+export default function ChangeDetail() {
+  const { id } = useParams<{ id: string }>();
+  const [change, setChange] = useState<any>(null);
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [progress, setProgress] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'proposal' | 'tasks' | 'design'>('proposal');
+
+  useEffect(() => {
+    async function fetchData() {
+      if (!id) return;
+
+      try {
+        const [changeRes, tasksRes] = await Promise.all([
+          changesApi.get(id),
+          tasksApi.get(id),
+        ]);
+
+        setChange(changeRes.change);
+        setTasks(tasksRes.tasks);
+        setProgress(tasksRes.progress);
+      } catch (error) {
+        console.error('Failed to fetch change:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchData();
+  }, [id]);
+
+  const handleTaskUpdate = async (taskId: string, status: string) => {
+    if (!id) return;
+
+    try {
+      await tasksApi.update(id, taskId, status);
+      const tasksRes = await tasksApi.get(id);
+      setTasks(tasksRes.tasks);
+      setProgress(tasksRes.progress);
+    } catch (error) {
+      console.error('Failed to update task:', error);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  if (!change) {
+    return (
+      <div className="text-center py-12">
+        <h2 className="text-xl font-semibold text-gray-900">Change not found</h2>
+        <Link to="/changes" className="text-blue-500 hover:text-blue-700 mt-2 inline-block">
+          ← Back to changes
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-start">
+        <div>
+          <Link to="/changes" className="text-blue-500 hover:text-blue-700 text-sm">
+            ← Back to changes
+          </Link>
+          <h2 className="text-2xl font-bold text-gray-900 mt-2">{change.title}</h2>
+          <p className="text-gray-500">{change.id}</p>
+        </div>
+        <span
+          className={`status-badge ${
+            change.status === 'active' ? 'status-implementing' : 'status-completed'
+          }`}
+        >
+          {change.status}
+        </span>
+      </div>
+
+      {/* Progress */}
+      {progress && (
+        <div className="bg-white rounded-lg shadow p-4">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-sm font-medium text-gray-700">Progress</span>
+            <span className="text-sm text-gray-500">
+              {progress.completed}/{progress.total} tasks ({progress.percentage}%)
+            </span>
+          </div>
+          <div className="w-full h-3 bg-gray-200 rounded-full">
+            <div
+              className="h-full bg-blue-500 rounded-full transition-all duration-300"
+              style={{ width: `${progress.percentage}%` }}
+            />
+          </div>
+          <div className="flex justify-between mt-2 text-xs text-gray-500">
+            <span>✅ {progress.completed} done</span>
+            <span>🔄 {progress.inProgress} in progress</span>
+            <span>⏳ {progress.pending} pending</span>
+          </div>
+        </div>
+      )}
+
+      {/* Tabs */}
+      <div className="border-b border-gray-200">
+        <nav className="flex space-x-8">
+          {['proposal', 'tasks', 'design'].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab as any)}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === tab
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      {/* Tab Content */}
+      <div className="bg-white rounded-lg shadow">
+        {activeTab === 'proposal' && (
+          <div className="p-6">
+            <pre className="whitespace-pre-wrap text-sm font-mono bg-gray-50 p-4 rounded">
+              {change.proposal || 'No proposal content.'}
+            </pre>
+          </div>
+        )}
+
+        {activeTab === 'tasks' && (
+          <div className="p-6">
+            {tasks.length === 0 ? (
+              <p className="text-gray-500">No tasks defined.</p>
+            ) : (
+              <div className="space-y-2">
+                {tasks.map((task) => (
+                  <div
+                    key={task.id}
+                    className="flex items-center justify-between p-3 rounded border hover:bg-gray-50"
+                  >
+                    <div className="flex items-center space-x-3">
+                      <button
+                        onClick={() => {
+                          const nextStatus =
+                            task.status === 'pending'
+                              ? 'in_progress'
+                              : task.status === 'in_progress'
+                              ? 'done'
+                              : 'pending';
+                          handleTaskUpdate(task.id, nextStatus);
+                        }}
+                        className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                          task.status === 'done'
+                            ? 'bg-green-500 border-green-500 text-white'
+                            : task.status === 'in_progress'
+                            ? 'bg-blue-500 border-blue-500 text-white'
+                            : 'border-gray-300'
+                        }`}
+                      >
+                        {task.status === 'done' && '✓'}
+                        {task.status === 'in_progress' && '●'}
+                      </button>
+                      <div>
+                        <span className="font-mono text-sm text-gray-500">[{task.id}]</span>
+                        <span className="ml-2">{task.title}</span>
+                      </div>
+                    </div>
+                    <span
+                      className={`text-xs ${
+                        task.status === 'done'
+                          ? 'text-green-600'
+                          : task.status === 'in_progress'
+                          ? 'text-blue-600'
+                          : 'text-gray-400'
+                      }`}
+                    >
+                      {task.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'design' && (
+          <div className="p-6">
+            <pre className="whitespace-pre-wrap text-sm font-mono bg-gray-50 p-4 rounded">
+              {change.design || 'No design document.'}
+            </pre>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
