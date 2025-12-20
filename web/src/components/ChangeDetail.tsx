@@ -454,7 +454,7 @@ export default function ChangeDetail() {
                         </span>
                       )}
                     </div>
-                    <div className="prose prose-xs max-w-none text-gray-700">
+                    <div className="prose prose-xs max-w-none text-gray-700 break-words overflow-hidden prose-p:my-1 prose-ul:my-1 prose-li:my-0 prose-code:break-all prose-code:text-xs">
                       <ReactMarkdown remarkPlugins={[remarkGfm]}>
                         {review.body}
                       </ReactMarkdown>
