@@ -1,6 +1,6 @@
 {
   "name": "openspec-mcp",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "MCP server for OpenSpec - spec-driven development with real-time dashboard and approval workflow",
   "type": "module",
   "main": "dist/index.js",

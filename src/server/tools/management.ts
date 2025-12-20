@@ -63,9 +63,10 @@ export function registerManagementTools(server: McpServer, cli: OpenSpecCli): vo
       changeId: z.string().describe('Change ID (e.g., add-lite-effect-trial-binding)'),
       deltasOnly: z.boolean().optional().describe('Show only delta specs'),
       summary: z.boolean().optional().default(false).describe('Return summary only (smaller response)'),
-      maxContentLength: z.number().optional().default(5000).describe('Max characters for proposal/design content'),
+      maxContentLength: z.number().optional().default(2000).describe('Max characters for proposal/design content'),
+      maxTasks: z.number().optional().default(20).describe('Max number of tasks to return'),
     },
-    async ({ changeId, deltasOnly, summary, maxContentLength }) => {
+    async ({ changeId, deltasOnly, summary, maxContentLength, maxTasks }) => {
       const change = await cli.showChange(changeId, { deltasOnly });
 
       if (!change) {
@@ -90,7 +91,7 @@ export function registerManagementTools(server: McpServer, cli: OpenSpecCli): vo
           tasksTotal: change.tasksTotal,
           deltasCount: change.deltas?.length || 0,
           hasDesign: !!change.design,
-          proposalPreview: change.proposal?.substring(0, 500) + (change.proposal?.length > 500 ? '...' : ''),
+          proposalPreview: change.proposal?.substring(0, 300) + (change.proposal?.length > 300 ? '...' : ''),
         };
         return {
           content: [{ type: 'text', text: JSON.stringify(summaryData, null, 2) }],
@@ -98,7 +99,8 @@ export function registerManagementTools(server: McpServer, cli: OpenSpecCli): vo
       }
 
       // 截断过长的内容
-      const truncatedChange = {
+      const tasks = change.tasks || [];
+      const truncatedChange: Record<string, unknown> = {
         ...change,
         proposal: change.proposal?.length > maxContentLength
           ? change.proposal.substring(0, maxContentLength) + `\n\n... [truncated, ${change.proposal.length - maxContentLength} chars remaining]`
@@ -106,13 +108,19 @@ export function registerManagementTools(server: McpServer, cli: OpenSpecCli): vo
         design: change.design && change.design.length > maxContentLength
           ? change.design.substring(0, maxContentLength) + `\n\n... [truncated, ${change.design.length - maxContentLength} chars remaining]`
           : change.design,
+        // 限制 tasks 数量
+        tasks: tasks.length > maxTasks
+          ? [...tasks.slice(0, maxTasks), { id: '...', name: `... and ${tasks.length - maxTasks} more tasks`, status: 'info' }]
+          : tasks,
         // 限制 deltas 内容
-        deltas: change.deltas?.map((delta: any) => ({
+        deltas: change.deltas?.slice(0, 10).map((delta: any) => ({
           ...delta,
-          content: delta.content?.length > 2000
-            ? delta.content.substring(0, 2000) + `\n\n... [truncated]`
+          content: delta.content?.length > 1000
+            ? delta.content.substring(0, 1000) + `\n\n... [truncated]`
             : delta.content,
         })),
+        // 如果 deltas 被截断，添加提示
+        deltasNote: change.deltas?.length > 10 ? `Showing 10 of ${change.deltas.length} deltas` : undefined,
       };
 
       return {
