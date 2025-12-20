@@ -1,6 +1,6 @@
 {
   "name": "openspec-mcp",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "MCP server for OpenSpec - spec-driven development with real-time dashboard and approval workflow",
   "type": "module",
   "main": "dist/index.js",
@@ -32,6 +32,14 @@
   ],
   "author": "",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Lumiaqian/openspec-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Lumiaqian/openspec-mcp/issues"
+  },
+  "homepage": "https://github.com/Lumiaqian/openspec-mcp#readme",
   "engines": {
     "node": ">=20.0.0"
   },
