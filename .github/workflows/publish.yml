@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write  # Required for OIDC trusted publishing
+      id-token: write  # Required for npm provenance / OIDC
     
     steps:
       - uses: actions/checkout@v4
@@ -30,7 +30,7 @@ jobs:
       - name: Build web
         run: cd web && npm ci && npm run build
       
-      - name: Publish to npm
+      - name: Publish to npm with provenance
         run: npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
