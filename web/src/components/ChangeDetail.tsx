@@ -83,7 +83,7 @@ export default function ChangeDetail() {
     fetchData();
   }, [id]);
 
-  // Listen for WebSocket events to update reviews in real-time
+  // Listen for WebSocket events to update in real-time
   useEffect(() => {
     if (!lastMessage || !id) return;
 
@@ -115,11 +115,36 @@ export default function ChangeDetail() {
     
     // Handle reviews:updated event (from file watcher - MCP tool changes)
     if (event === 'reviews:updated' && data.changeId === id) {
-      // Re-fetch all reviews when file changes
       changesApi.getReviews(id).then(reviewsRes => {
         setReviews(reviewsRes);
       }).catch(err => {
         console.error('Failed to refresh reviews:', err);
+      });
+    }
+    
+    // Handle tasks:updated event (from file watcher - tasks.md changes)
+    if (event === 'tasks:updated' && data.changeId === id) {
+      tasksApi.get(id).then(tasksRes => {
+        setTasks(tasksRes.tasks);
+        setProgress(tasksRes.progress);
+      }).catch(err => {
+        console.error('Failed to refresh tasks:', err);
+      });
+    }
+    
+    // Handle task:updated event (from REST API)
+    if (event === 'task:updated' && data.changeId === id) {
+      setTasks(prev => prev.map(t => 
+        t.id === data.taskId ? { ...t, status: data.status } : t
+      ));
+    }
+    
+    // Handle change:content_updated event (from file watcher - proposal/design changes)
+    if (event === 'change:content_updated' && data.changeId === id) {
+      changesApi.get(id).then(changeRes => {
+        setChange(changeRes.change);
+      }).catch(err => {
+        console.error('Failed to refresh change:', err);
       });
     }
   }, [lastMessage, id]);

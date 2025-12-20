@@ -1,27 +1,38 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { changesApi } from '../api/client';
+import { useWebSocket } from '../hooks/useWebSocket';
 
 export default function ChangeList() {
+  const { lastMessage } = useWebSocket();
   const [changes, setChanges] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [includeArchived, setIncludeArchived] = useState(false);
 
-  useEffect(() => {
-    async function fetchChanges() {
-      setLoading(true);
-      try {
-        const res = await changesApi.list(includeArchived);
-        setChanges(res.changes);
-      } catch (error) {
-        console.error('Failed to fetch changes:', error);
-      } finally {
-        setLoading(false);
-      }
+  const fetchChanges = async () => {
+    try {
+      const res = await changesApi.list(includeArchived);
+      setChanges(res.changes);
+    } catch (error) {
+      console.error('Failed to fetch changes:', error);
     }
+  };
 
-    fetchChanges();
+  useEffect(() => {
+    setLoading(true);
+    fetchChanges().finally(() => setLoading(false));
   }, [includeArchived]);
+
+  // Listen for WebSocket events to refresh list
+  useEffect(() => {
+    if (!lastMessage) return;
+    const { event } = lastMessage;
+    
+    // Refresh list when changes are archived or tasks updated
+    if (['change:archived', 'tasks:updated', 'task:updated', 'change:content_updated'].includes(event)) {
+      fetchChanges();
+    }
+  }, [lastMessage]);
 
   if (loading) {
     return (

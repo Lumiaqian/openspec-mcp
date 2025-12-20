@@ -261,6 +261,36 @@ export async function startApiServer(options: ApiServerOptions): Promise<Fastify
         }, 'reviews');
       }
     }
+    
+    // 处理 change 文件变化 - 广播 change:updated 事件
+    if (typeof fileInfo === 'object') {
+      const type = fileInfo.type;
+      
+      // tasks.md 变化
+      if (type === 'tasks') {
+        const match = fileInfo.path?.match(/changes\/([^/]+)\/tasks\.md$/);
+        const changeId = match ? match[1] : null;
+        if (changeId) {
+          broadcast('tasks:updated', { 
+            changeId,
+            timestamp: new Date().toISOString()
+          }, 'tasks');
+        }
+      }
+      
+      // proposal.md 或 design.md 变化
+      if (type === 'proposal' || type === 'design') {
+        const match = fileInfo.path?.match(/changes\/([^/]+)\/(proposal|design)\.md$/);
+        const changeId = match ? match[1] : null;
+        if (changeId) {
+          broadcast('change:content_updated', { 
+            changeId,
+            contentType: type,
+            timestamp: new Date().toISOString()
+          }, 'changes');
+        }
+      }
+    }
   });
 
   await fileWatcher.start();

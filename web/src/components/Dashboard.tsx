@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { changesApi, specsApi, tasksApi, approvalsApi } from '../api/client';
+import { useWebSocket } from '../hooks/useWebSocket';
 
 interface Stats {
   changes: number;
@@ -10,6 +11,7 @@ interface Stats {
 }
 
 export default function Dashboard() {
+  const { lastMessage } = useWebSocket();
   const [stats, setStats] = useState<Stats>({
     changes: 0,
     specs: 0,
@@ -19,33 +21,45 @@ export default function Dashboard() {
   const [recentChanges, setRecentChanges] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        const [changesRes, specsRes, progressRes, approvalsRes] = await Promise.all([
-          changesApi.list(),
-          specsApi.list(),
-          tasksApi.getProgress(),
-          approvalsApi.listPending(),
-        ]);
+  const fetchData = useCallback(async () => {
+    try {
+      const [changesRes, specsRes, progressRes, approvalsRes] = await Promise.all([
+        changesApi.list(),
+        specsApi.list(),
+        tasksApi.getProgress(),
+        approvalsApi.listPending(),
+      ]);
 
-        setStats({
-          changes: changesRes.changes.length,
-          specs: specsRes.specs.length,
-          pendingApprovals: approvalsRes.approvals.length,
-          overallProgress: progressRes.overall.percentage,
-        });
+      setStats({
+        changes: changesRes.changes.length,
+        specs: specsRes.specs.length,
+        pendingApprovals: approvalsRes.approvals.length,
+        overallProgress: progressRes.overall.percentage,
+      });
 
-        setRecentChanges(changesRes.changes.slice(0, 5));
-      } catch (error) {
-        console.error('Failed to fetch dashboard data:', error);
-      } finally {
-        setLoading(false);
-      }
+      setRecentChanges(changesRes.changes.slice(0, 5));
+    } catch (error) {
+      console.error('Failed to fetch dashboard data:', error);
     }
-
-    fetchData();
   }, []);
+
+  useEffect(() => {
+    fetchData().finally(() => setLoading(false));
+  }, [fetchData]);
+
+  // Listen for WebSocket events to refresh dashboard
+  useEffect(() => {
+    if (!lastMessage) return;
+    const { event } = lastMessage;
+    
+    // Refresh dashboard for relevant events
+    if ([
+      'change:archived', 'tasks:updated', 'task:updated', 'change:content_updated',
+      'approval:requested', 'approval:approved', 'approval:rejected'
+    ].includes(event)) {
+      fetchData();
+    }
+  }, [lastMessage, fetchData]);
 
   if (loading) {
     return (

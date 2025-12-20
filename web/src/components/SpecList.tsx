@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { specsApi } from '../api/client';
+import { useWebSocket } from '../hooks/useWebSocket';
 
 interface Review {
   id: string;
@@ -37,6 +38,7 @@ const severityColors: Record<string, string> = {
 };
 
 export default function SpecList() {
+  const { lastMessage } = useWebSocket();
   const [specs, setSpecs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSpec, setSelectedSpec] = useState<any>(null);
@@ -49,20 +51,35 @@ export default function SpecList() {
   const [severity, setSeverity] = useState<Review['severity']>('medium');
   const contentRef = useRef<HTMLDivElement>(null);
 
+  const fetchSpecs = async () => {
+    try {
+      const res = await specsApi.list();
+      setSpecs(res.specs);
+    } catch (error) {
+      console.error('Failed to fetch specs:', error);
+    }
+  };
+
   useEffect(() => {
-    async function fetchSpecs() {
-      try {
-        const res = await specsApi.list();
-        setSpecs(res.specs);
-      } catch (error) {
-        console.error('Failed to fetch specs:', error);
-      } finally {
-        setLoading(false);
+    fetchSpecs().finally(() => setLoading(false));
+  }, []);
+
+  // Listen for WebSocket events to refresh specs
+  useEffect(() => {
+    if (!lastMessage) return;
+    const { event, data } = lastMessage;
+    
+    // Refresh spec list or selected spec when file changes
+    if (event === 'file:changed' || event === 'reviews:updated') {
+      fetchSpecs();
+      // Refresh selected spec's reviews if applicable
+      if (selectedSpec && event === 'reviews:updated' && data?.targetType === 'spec') {
+        specsApi.listReviews(selectedSpec.id).then(res => {
+          setReviews(res.reviews);
+        }).catch(console.error);
       }
     }
-
-    fetchSpecs();
-  }, []);
+  }, [lastMessage, selectedSpec]);
 
   const handleViewSpec = async (specId: string) => {
     try {

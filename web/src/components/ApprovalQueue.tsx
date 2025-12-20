@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { approvalsApi } from '../api/client';
+import { useWebSocket } from '../hooks/useWebSocket';
 
 export default function ApprovalQueue() {
+  const { lastMessage } = useWebSocket();
   const [approvals, setApprovals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAll, setShowAll] = useState(false);
@@ -11,12 +13,7 @@ export default function ApprovalQueue() {
   }>({ type: null, changeId: '' });
   const [actionInput, setActionInput] = useState({ name: '', comment: '' });
 
-  useEffect(() => {
-    fetchApprovals();
-  }, [showAll]);
-
   async function fetchApprovals() {
-    setLoading(true);
     try {
       const res = showAll
         ? await approvalsApi.list()
@@ -24,10 +21,23 @@ export default function ApprovalQueue() {
       setApprovals(res.approvals);
     } catch (error) {
       console.error('Failed to fetch approvals:', error);
-    } finally {
-      setLoading(false);
     }
   }
+
+  useEffect(() => {
+    setLoading(true);
+    fetchApprovals().finally(() => setLoading(false));
+  }, [showAll]);
+
+  // Listen for WebSocket events to refresh approvals
+  useEffect(() => {
+    if (!lastMessage) return;
+    const { event } = lastMessage;
+    
+    if (['approval:requested', 'approval:approved', 'approval:rejected'].includes(event)) {
+      fetchApprovals();
+    }
+  }, [lastMessage]);
 
   const handleApprove = async () => {
     if (!actionInput.name) return;
