@@ -35,6 +35,38 @@ export const changesApi = {
       method: 'POST',
       body: JSON.stringify({ skipSpecs }),
     }),
+
+  // Reviews
+  getReviews: (id: string) =>
+    fetchJson<{
+      proposal: any[];
+      design: any[];
+      tasks: any[];
+      summary: any;
+    }>(`/changes/${id}/reviews`),
+
+  addReview: (
+    id: string,
+    targetType: 'proposal' | 'design' | 'tasks',
+    body: string,
+    type: string,
+    options?: { lineNumber?: number; severity?: string }
+  ) =>
+    fetchJson<{ review: any }>(`/changes/${id}/reviews`, {
+      method: 'POST',
+      body: JSON.stringify({ targetType, body, type, ...options }),
+    }),
+
+  resolveReview: (
+    id: string,
+    reviewId: string,
+    targetType: 'proposal' | 'design' | 'tasks',
+    status: 'resolved' | 'wont_fix' = 'resolved'
+  ) =>
+    fetchJson<{ success: boolean }>(`/changes/${id}/reviews/${reviewId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ targetType, status }),
+    }),
 };
 
 // Specs API
@@ -48,6 +80,36 @@ export const specsApi = {
       method: 'POST',
       body: JSON.stringify({ strict }),
     }),
+
+  // Reviews
+  listReviews: (id: string, status?: string, type?: string) => {
+    const params = new URLSearchParams();
+    if (status) params.append('status', status);
+    if (type) params.append('type', type);
+    const query = params.toString() ? `?${params.toString()}` : '';
+    return fetchJson<{ reviews: any[] }>(`/specs/${id}/reviews${query}`);
+  },
+
+  addReview: (
+    id: string,
+    body: string,
+    type: string,
+    options?: { lineNumber?: number; severity?: string; suggestedChange?: string }
+  ) =>
+    fetchJson<{ review: any }>(`/specs/${id}/reviews`, {
+      method: 'POST',
+      body: JSON.stringify({ body, type, ...options }),
+    }),
+
+  resolveReview: (id: string, reviewId: string, status: 'resolved' | 'wont_fix' = 'resolved') =>
+    fetchJson<{ success: boolean }>(`/specs/${id}/reviews/${reviewId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    }),
+
+  // Dependencies
+  getDependencies: () =>
+    fetchJson<{ graph: { nodes: any[]; edges: any[] }; mermaid: string }>('/specs/dependencies'),
 };
 
 // Tasks API
@@ -93,4 +155,12 @@ export const approvalsApi = {
       method: 'POST',
       body: JSON.stringify({ rejector, reason }),
     }),
+};
+
+// Project API
+export const projectApi = {
+  get: () =>
+    fetchJson<{ project: { name: string; source: 'project.md' | 'package.json' | 'cwd' } }>(
+      '/project'
+    ),
 };

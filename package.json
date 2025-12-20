@@ -1,20 +1,26 @@
 {
   "name": "openspec-mcp",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "MCP server for OpenSpec - spec-driven development with real-time dashboard and approval workflow",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
     "openspec-mcp": "dist/index.js"
   },
+  "files": [
+    "dist/**",
+    "web/dist/**",
+    "README.md",
+    "README.zh.md"
+  ],
   "scripts": {
     "build": "tsc",
+    "build:web": "npm --prefix web run build",
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
     "start:dashboard": "node dist/index.js --dashboard",
-    "lint": "eslint src/",
     "test": "vitest",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build && npm run build:web"
   },
   "keywords": [
     "mcp",
@@ -43,9 +49,6 @@
     "@types/node": "^20.0.0",
     "typescript": "^5.0.0",
     "tsx": "^4.0.0",
-    "vitest": "^1.0.0",
-    "eslint": "^8.0.0",
-    "@typescript-eslint/eslint-plugin": "^6.0.0",
-    "@typescript-eslint/parser": "^6.0.0"
+    "vitest": "^1.0.0"
   }
 }

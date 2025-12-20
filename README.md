@@ -7,30 +7,35 @@ MCP (Model Context Protocol) server for [OpenSpec](https://github.com/Fission-AI
 ## Features
 
 - **MCP Tools**: Full OpenSpec CLI functionality exposed as MCP tools
+- **Review System**: Add, reply, resolve review comments on proposals/designs
 - **Task Tracking**: Parse tasks.md and track progress in real-time
 - **Approval Workflow**: Request, approve, and reject change proposals
-- **Web Dashboard**: Visual management interface with real-time updates
+- **Web Dashboard**: Visual management interface with real-time updates and Markdown rendering
 
 ## Quick Start
 
 ### 1. Add to your MCP configuration
 
 **Claude Code CLI (recommended - uses current directory):**
+
 ```bash
 claude mcp add openspec -- npx openspec-mcp
 ```
 
 **Claude Code CLI with Dashboard:**
+
 ```bash
 claude mcp add openspec -- npx openspec-mcp --with-dashboard
 ```
 
 **Claude Code CLI with specific project path:**
+
 ```bash
 claude mcp add openspec -- npx openspec-mcp /path/to/your/project
 ```
 
 **Claude Desktop / Cursor / Other:**
+
 ```json
 {
   "mcpServers": {
@@ -43,6 +48,7 @@ claude mcp add openspec -- npx openspec-mcp /path/to/your/project
 ```
 
 **With Dashboard:**
+
 ```json
 {
   "mcpServers": {
@@ -73,46 +79,86 @@ claude mcp add openspec -- npx openspec-mcp /path/to/your/project
 ## Available Tools
 
 ### Guides
-| Tool | Description |
-|------|-------------|
-| `openspec_get_instructions` | Get AGENTS.md usage guide |
-| `openspec_get_project_context` | Get project.md context |
+
+| Tool                           | Description               |
+| ------------------------------ | ------------------------- |
+| `openspec_get_instructions`    | Get AGENTS.md usage guide |
+| `openspec_get_project_context` | Get project.md context    |
 
 ### Management
-| Tool | Description |
-|------|-------------|
+
+| Tool                    | Description               |
+| ----------------------- | ------------------------- |
 | `openspec_list_changes` | List all change proposals |
-| `openspec_list_specs` | List all specifications |
-| `openspec_show_change` | Show change details |
-| `openspec_show_spec` | Show spec details |
+| `openspec_list_specs`   | List all specifications   |
+| `openspec_show_change`  | Show change details       |
+| `openspec_show_spec`    | Show spec details         |
 
 ### Validation
-| Tool | Description |
-|------|-------------|
+
+| Tool                       | Description       |
+| -------------------------- | ----------------- |
 | `openspec_validate_change` | Validate a change |
-| `openspec_validate_spec` | Validate a spec |
-| `openspec_validate_all` | Batch validation |
+| `openspec_validate_spec`   | Validate a spec   |
+| `openspec_validate_all`    | Batch validation  |
 
 ### Archive
-| Tool | Description |
-|------|-------------|
+
+| Tool                      | Description              |
+| ------------------------- | ------------------------ |
 | `openspec_archive_change` | Archive completed change |
 
 ### Tasks
-| Tool | Description |
-|------|-------------|
-| `openspec_get_tasks` | Get tasks and progress |
-| `openspec_update_task` | Update task status |
+
+| Tool                            | Description              |
+| ------------------------------- | ------------------------ |
+| `openspec_get_tasks`            | Get tasks and progress   |
+| `openspec_update_task`          | Update task status       |
+| `openspec_batch_update_tasks`   | Batch update task status |
 | `openspec_get_progress_summary` | Get all changes progress |
 
 ### Approval
-| Tool | Description |
-|------|-------------|
-| `openspec_get_approval_status` | Get approval status |
-| `openspec_request_approval` | Request approval |
-| `openspec_approve_change` | Approve a change |
-| `openspec_reject_change` | Reject a change |
+
+| Tool                              | Description            |
+| --------------------------------- | ---------------------- |
+| `openspec_get_approval_status`    | Get approval status    |
+| `openspec_request_approval`       | Request approval       |
+| `openspec_approve_change`         | Approve a change       |
+| `openspec_reject_change`          | Reject a change        |
 | `openspec_list_pending_approvals` | List pending approvals |
+
+### Reviews
+
+| Tool                                | Description                                 |
+| ----------------------------------- | ------------------------------------------- |
+| `openspec_add_review`               | Add review comment to proposal/design/tasks |
+| `openspec_list_reviews`             | List reviews with filters                   |
+| `openspec_reply_review`             | Reply to a review                           |
+| `openspec_resolve_review`           | Mark review as resolved                     |
+| `openspec_get_review_summary`       | Get review statistics                       |
+| `openspec_check_approval_readiness` | Check if ready for approval                 |
+
+### Templates
+
+| Tool                        | Description                 |
+| --------------------------- | --------------------------- |
+| `openspec_list_templates`   | List available templates    |
+| `openspec_create_change`    | Create change from template |
+| `openspec_preview_template` | Preview template content    |
+
+### Generator
+
+| Tool                         | Description                         |
+| ---------------------------- | ----------------------------------- |
+| `openspec_prepare_proposal`  | Prepare proposal structure          |
+| `openspec_save_proposal`     | Save generated proposal             |
+| `openspec_generate_proposal` | Generate proposal from requirements |
+
+### Hooks
+
+| Tool                   | Description                 |
+| ---------------------- | --------------------------- |
+| `openspec_setup_hooks` | Setup git hooks for project |
 
 ## Approval Workflow
 
@@ -134,7 +180,7 @@ Arguments:
 Options:
   --dashboard             Start web dashboard only (HTTP mode)
   --with-dashboard        Start MCP server with web dashboard
-  -p, --port <number>     Dashboard port (default: 3000)
+  -p, --port <number>     Dashboard port (default: 3000; auto-increments if busy, 0 for random)
   -V, --version           Output version number
   -h, --help              Display help
 ```
@@ -164,20 +210,22 @@ The dashboard provides a visual interface for managing changes, tracking tasks, 
 
 ### Dashboard Pages
 
-| Route | Description |
-|-------|-------------|
-| `/` | Overview with stats and recent changes |
-| `/changes` | List all changes with progress |
-| `/changes/:id` | Change detail with task management |
-| `/specs` | Browse specifications |
-| `/approvals` | Approval queue management |
+| Route          | Description                            |
+| -------------- | -------------------------------------- |
+| `/`            | Overview with stats and recent changes |
+| `/changes`     | List all changes with progress         |
+| `/changes/:id` | Change detail with task management     |
+| `/specs`       | Browse specifications                  |
+| `/approvals`   | Approval queue management              |
 
 ### Features
 
-- **Real-time Updates**: WebSocket connection for live progress updates
+- **Real-time Updates**: WebSocket connection for live progress and review updates
 - **Task Management**: Toggle task status directly from the UI
 - **Approval Actions**: Approve/reject changes with comments
 - **Progress Visualization**: Progress bars and status badges
+- **Review Management**: View, resolve and track reviews with Open/Resolved tabs
+- **Markdown Rendering**: Proposals and designs rendered with full Markdown support
 
 ## Development
 

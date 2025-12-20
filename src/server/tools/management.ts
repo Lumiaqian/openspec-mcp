@@ -62,8 +62,10 @@ export function registerManagementTools(server: McpServer, cli: OpenSpecCli): vo
     {
       changeId: z.string().describe('Change ID (e.g., add-lite-effect-trial-binding)'),
       deltasOnly: z.boolean().optional().describe('Show only delta specs'),
+      summary: z.boolean().optional().default(false).describe('Return summary only (smaller response)'),
+      maxContentLength: z.number().optional().default(5000).describe('Max characters for proposal/design content'),
     },
-    async ({ changeId, deltasOnly }) => {
+    async ({ changeId, deltasOnly, summary, maxContentLength }) => {
       const change = await cli.showChange(changeId, { deltasOnly });
 
       if (!change) {
@@ -78,11 +80,46 @@ export function registerManagementTools(server: McpServer, cli: OpenSpecCli): vo
         };
       }
 
+      // Summary 模式：只返回基本信息
+      if (summary) {
+        const summaryData = {
+          id: change.id,
+          title: change.title,
+          status: change.status,
+          tasksCompleted: change.tasksCompleted,
+          tasksTotal: change.tasksTotal,
+          deltasCount: change.deltas?.length || 0,
+          hasDesign: !!change.design,
+          proposalPreview: change.proposal?.substring(0, 500) + (change.proposal?.length > 500 ? '...' : ''),
+        };
+        return {
+          content: [{ type: 'text', text: JSON.stringify(summaryData, null, 2) }],
+        };
+      }
+
+      // 截断过长的内容
+      const truncatedChange = {
+        ...change,
+        proposal: change.proposal?.length > maxContentLength
+          ? change.proposal.substring(0, maxContentLength) + `\n\n... [truncated, ${change.proposal.length - maxContentLength} chars remaining]`
+          : change.proposal,
+        design: change.design && change.design.length > maxContentLength
+          ? change.design.substring(0, maxContentLength) + `\n\n... [truncated, ${change.design.length - maxContentLength} chars remaining]`
+          : change.design,
+        // 限制 deltas 内容
+        deltas: change.deltas?.map((delta: any) => ({
+          ...delta,
+          content: delta.content?.length > 2000
+            ? delta.content.substring(0, 2000) + `\n\n... [truncated]`
+            : delta.content,
+        })),
+      };
+
       return {
         content: [
           {
             type: 'text',
-            text: JSON.stringify(change, null, 2),
+            text: JSON.stringify(truncatedChange, null, 2),
           },
         ],
       };

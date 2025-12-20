@@ -103,6 +103,19 @@ export class FileWatcher extends EventEmitter {
     if (relativePath.includes('openspec/changes/archive/')) {
       return 'archive';
     }
+    if (relativePath.includes('openspec/reviews/')) {
+      // Extract target type from path: reviews/changes/{changeId}/{targetType}.json
+      if (relativePath.includes('/changes/')) {
+        const match = relativePath.match(/\/changes\/([^/]+)\/(\w+)\.json$/);
+        if (match) {
+          return `review:${match[2]}`; // review:proposal, review:design, review:tasks
+        }
+      }
+      if (relativePath.includes('/specs/')) {
+        return 'review:spec';
+      }
+      return 'review';
+    }
     if (relativePath.includes('openspec/changes/')) {
       if (relativePath.endsWith('proposal.md')) return 'proposal';
       if (relativePath.endsWith('design.md')) return 'design';

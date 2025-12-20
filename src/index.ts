@@ -12,14 +12,21 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { Command } from 'commander';
 import { OpenSpecCli } from './core/openspec-cli.js';
 import { ApprovalManager } from './core/approval-manager.js';
+import { ReviewManager } from './core/review-manager.js';
+import { TemplateManager } from './core/template-manager.js';
+import { HooksManager } from './core/hooks-manager.js';
+import { ProposalGenerator } from './core/proposal-generator.js';
 import { registerGuidesTools } from './server/tools/guides.js';
 import { registerManagementTools } from './server/tools/management.js';
 import { registerValidationTools } from './server/tools/validation.js';
 import { registerArchiveTools } from './server/tools/archive.js';
 import { registerTasksTools } from './server/tools/tasks.js';
 import { registerApprovalTools } from './server/tools/approval.js';
-
-const VERSION = '0.1.0';
+import { registerReviewTools } from './server/tools/reviews.js';
+import { registerTemplatesTools } from './server/tools/templates.js';
+import { registerHooksTools } from './server/tools/hooks.js';
+import { registerGeneratorTools } from './server/tools/generator.js';
+import { VERSION } from './utils/version.js';
 
 /**
  * 创建并配置 MCP Server
@@ -33,6 +40,10 @@ function createMcpServer(cwd: string): McpServer {
   // 创建核心模块实例
   const cli = new OpenSpecCli({ cwd });
   const approvalManager = new ApprovalManager({ cwd });
+  const reviewManager = new ReviewManager({ cwd });
+  const templateManager = new TemplateManager({ cwd });
+  const hooksManager = new HooksManager({ cwd });
+  const proposalGenerator = new ProposalGenerator({ cwd });
 
   // 注册所有工具
   registerGuidesTools(server, cli);
@@ -41,6 +52,10 @@ function createMcpServer(cwd: string): McpServer {
   registerArchiveTools(server, cli);
   registerTasksTools(server, cli);
   registerApprovalTools(server, approvalManager);
+  registerReviewTools(server, reviewManager);
+  registerTemplatesTools(server, templateManager);
+  registerHooksTools(server, hooksManager);
+  registerGeneratorTools(server, proposalGenerator);
 
   return server;
 }

@@ -1,5 +1,7 @@
+import { useEffect, useState } from 'react';
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import { useWebSocket } from './hooks/useWebSocket';
+import { projectApi } from './api/client';
 import Dashboard from './components/Dashboard';
 import ChangeList from './components/ChangeList';
 import ChangeDetail from './components/ChangeDetail';
@@ -9,6 +11,24 @@ import ApprovalQueue from './components/ApprovalQueue';
 function App() {
   const location = useLocation();
   const { connected } = useWebSocket();
+  const [projectName, setProjectName] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    projectApi
+      .get()
+      .then(({ project }) => {
+        if (active) {
+          setProjectName(project.name);
+        }
+      })
+      .catch(() => {
+        // Ignore project name errors, keep UI functional.
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const navItems = [
     { path: '/', label: 'Dashboard' },
@@ -25,6 +45,11 @@ function App() {
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-4">
               <h1 className="text-xl font-bold text-gray-900">OpenSpec MCP</h1>
+              {projectName ? (
+                <span className="text-sm text-gray-500" title={projectName}>
+                  {projectName}
+                </span>
+              ) : null}
               <span
                 className={`inline-flex items-center px-2 py-1 rounded text-xs ${
                   connected

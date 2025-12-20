@@ -30,5 +30,6 @@ coverage/
 *.tmp
 *.temp
 .cache/
+.npm-cache/
 .claude/
 .serena/

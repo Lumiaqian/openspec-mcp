@@ -149,6 +149,56 @@ export function registerTasksTools(server: McpServer, cli: OpenSpecCli): void {
       };
     }
   );
+
+  /**
+   * 批量更新任务状态
+   */
+  server.tool(
+    'openspec_batch_update_tasks',
+    'Batch update multiple task statuses in a change',
+    {
+      changeId: z.string().describe('Change ID'),
+      updates: z
+        .array(
+          z.object({
+            taskId: z.string().describe('Task ID (e.g., 1.1, 2.3)'),
+            status: z.enum(['pending', 'in_progress', 'done']).describe('New status'),
+          })
+        )
+        .describe('Array of task updates'),
+    },
+    async ({ changeId, updates }) => {
+      const results: { taskId: string; success: boolean; error?: string }[] = [];
+
+      for (const update of updates) {
+        const result = await cli.updateTaskStatus(changeId, update.taskId, update.status);
+        results.push({
+          taskId: update.taskId,
+          success: result.success,
+          error: result.error,
+        });
+      }
+
+      const successCount = results.filter((r) => r.success).length;
+      const failCount = results.length - successCount;
+
+      let text = `Batch Update Results for: ${changeId}\n`;
+      text += `==============================\n\n`;
+      text += `✅ Success: ${successCount}\n`;
+      if (failCount > 0) {
+        text += `❌ Failed: ${failCount}\n\n`;
+        text += `Failures:\n`;
+        for (const r of results.filter((r) => !r.success)) {
+          text += `  - Task ${r.taskId}: ${r.error}\n`;
+        }
+      }
+
+      return {
+        content: [{ type: 'text', text }],
+        isError: failCount > 0,
+      };
+    }
+  );
 }
 
 /**

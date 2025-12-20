@@ -70,4 +70,47 @@ export function registerTasksRoutes(fastify: FastifyInstance, ctx: ApiContext): 
       },
     };
   });
+
+  /**
+   * POST /api/changes/:id/tasks/batch - 批量更新任务状态
+   */
+  fastify.post('/changes/:id/tasks/batch', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const { updates } = request.body as {
+      updates: Array<{ taskId: string; status: 'pending' | 'in_progress' | 'done' }>;
+    };
+
+    if (!Array.isArray(updates) || updates.length === 0) {
+      return reply.status(400).send({ error: 'updates array is required' });
+    }
+
+    const results: { taskId: string; success: boolean; error?: string }[] = [];
+
+    for (const update of updates) {
+      if (!['pending', 'in_progress', 'done'].includes(update.status)) {
+        results.push({ taskId: update.taskId, success: false, error: 'Invalid status' });
+        continue;
+      }
+
+      const result = await cli.updateTaskStatus(id, update.taskId, update.status);
+      results.push({
+        taskId: update.taskId,
+        success: result.success,
+        error: result.error,
+      });
+    }
+
+    const successCount = results.filter((r) => r.success).length;
+
+    // 广播批量更新事件
+    ctx.broadcast('tasks:batch_updated', { changeId: id, results });
+
+    return {
+      changeId: id,
+      total: updates.length,
+      success: successCount,
+      failed: updates.length - successCount,
+      results,
+    };
+  });
 }

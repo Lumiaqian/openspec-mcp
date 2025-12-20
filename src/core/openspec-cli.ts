@@ -13,6 +13,7 @@ import type {
   Spec,
   SpecDetail,
   ValidationResult,
+  ValidationError,
   Task,
   Progress,
 } from '../types/openspec.js';
@@ -38,6 +39,17 @@ export class OpenSpecCli {
    */
   private getOpenSpecDir(): string {
     return path.join(this.cwd, 'openspec');
+  }
+
+  /**
+   * 校验 ID 参数，防止路径遍历攻击
+   */
+  private ensureSafeId(id: string, type: 'change' | 'spec'): string {
+    const trimmed = id.trim();
+    if (!trimmed || trimmed.includes('..') || trimmed.includes('/') || trimmed.includes('\\')) {
+      throw new Error(`Invalid ${type} id: ${id}`);
+    }
+    return trimmed;
   }
 
   /**
@@ -74,6 +86,79 @@ export class OpenSpecCli {
     } catch {
       return 'project.md not found. Run `openspec init` to initialize.';
     }
+  }
+
+  /**
+   * 获取项目名称
+   * 优先级: git remote > package.json/go.mod > 目录名 > project.md
+   */
+  async getProjectName(): Promise<{ name: string; source: 'git' | 'package.json' | 'go.mod' | 'cwd' | 'project.md' }> {
+    // 1. 尝试从 git remote 获取项目名
+    try {
+      const { execSync } = await import('child_process');
+      const remoteUrl = execSync('git remote get-url origin', { 
+        cwd: this.cwd, 
+        encoding: 'utf-8',
+        timeout: 3000,
+        stdio: ['pipe', 'pipe', 'pipe'],
+      }).trim();
+      
+      // 解析 git URL: https://github.com/user/repo.git 或 git@github.com:user/repo.git
+      const match = remoteUrl.match(/[/:]([^/:]+?)(?:\.git)?$/);
+      if (match) {
+        return { name: match[1], source: 'git' };
+      }
+    } catch {
+      // git 可能不可用或不是 git 仓库
+    }
+
+    // 2. 尝试从 package.json 获取
+    try {
+      const packagePath = path.join(this.cwd, 'package.json');
+      const content = await fs.readFile(packagePath, 'utf-8');
+      const data = JSON.parse(content) as { name?: string };
+      if (data.name) {
+        return { name: String(data.name), source: 'package.json' };
+      }
+    } catch {
+      // package.json 可能不存在
+    }
+
+    // 3. 尝试从 go.mod 获取
+    try {
+      const goModPath = path.join(this.cwd, 'go.mod');
+      const content = await fs.readFile(goModPath, 'utf-8');
+      const match = content.match(/^module\s+(.+)/m);
+      if (match) {
+        // 取模块路径的最后一段作为名称
+        const moduleName = match[1].trim().split('/').pop();
+        if (moduleName) {
+          return { name: moduleName, source: 'go.mod' };
+        }
+      }
+    } catch {
+      // go.mod 可能不存在
+    }
+
+    // 4. 使用当前目录名
+    const dirName = path.basename(this.cwd);
+    if (dirName && dirName !== '.' && dirName !== '/') {
+      return { name: dirName, source: 'cwd' };
+    }
+
+    // 5. 最后尝试 project.md（最低优先级）
+    try {
+      const projectPath = path.join(this.getOpenSpecDir(), 'project.md');
+      const content = await fs.readFile(projectPath, 'utf-8');
+      const headingMatch = content.match(/^#\s+(.+)/m);
+      if (headingMatch) {
+        return { name: headingMatch[1].trim(), source: 'project.md' };
+      }
+    } catch {
+      // project.md 可能不存在
+    }
+
+    return { name: 'Unknown Project', source: 'cwd' };
   }
 
   /**
@@ -197,6 +282,7 @@ export class OpenSpecCli {
     changeId: string,
     options?: { deltasOnly?: boolean }
   ): Promise<ChangeDetail | null> {
+    changeId = this.ensureSafeId(changeId, 'change');
     // 先在活跃变更中查找
     let changeDir = path.join(this.getOpenSpecDir(), 'changes', changeId);
 
@@ -330,6 +416,7 @@ export class OpenSpecCli {
    * 显示规格详情
    */
   async showSpec(specId: string): Promise<SpecDetail | null> {
+    specId = this.ensureSafeId(specId, 'spec');
     const specPath = path.join(this.getOpenSpecDir(), 'specs', specId, 'spec.md');
 
     try {
@@ -364,13 +451,14 @@ export class OpenSpecCli {
     changeId: string,
     options?: { strict?: boolean }
   ): Promise<ValidationResult> {
+    changeId = this.ensureSafeId(changeId, 'change');
     try {
       const flags = options?.strict ? '--strict' : '';
       await execAsync(`openspec validate ${changeId} ${flags}`, { cwd: this.cwd });
       return { valid: true, errors: [] };
     } catch (error: any) {
       // 解析错误输出
-      const errors: any[] = [];
+      const errors: ValidationError[] = [];
       const output = error.stderr || error.stdout || '';
 
       // 简单解析错误信息
@@ -399,7 +487,7 @@ export class OpenSpecCli {
       await execAsync(`openspec spec validate ${specId} ${flags}`, { cwd: this.cwd });
       return { valid: true, errors: [] };
     } catch (error: any) {
-      const errors: any[] = [];
+      const errors: ValidationError[] = [];
       const output = error.stderr || error.stdout || '';
 
       const lines = output.split('\n').filter((l: string) => l.trim());
@@ -458,6 +546,7 @@ export class OpenSpecCli {
    * 获取变更的任务列表
    */
   async getTasks(changeId: string): Promise<{ tasks: Task[]; progress: Progress }> {
+    changeId = this.ensureSafeId(changeId, 'change');
     const changeDir = path.join(this.getOpenSpecDir(), 'changes', changeId);
     const tasksPath = path.join(changeDir, 'tasks.md');
 
@@ -487,6 +576,7 @@ export class OpenSpecCli {
     taskId: string,
     status: 'pending' | 'in_progress' | 'done'
   ): Promise<{ success: boolean; error?: string }> {
+    changeId = this.ensureSafeId(changeId, 'change');
     const changeDir = path.join(this.getOpenSpecDir(), 'changes', changeId);
     const tasksPath = path.join(changeDir, 'tasks.md');
 

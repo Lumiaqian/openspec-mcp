@@ -63,4 +63,79 @@ export function registerChangesRoutes(fastify: FastifyInstance, ctx: ApiContext)
       return reply.status(400).send(result);
     }
   });
+
+  /**
+   * GET /api/changes/:id/reviews - 获取 Change 的所有 reviews
+   */
+  fastify.get('/changes/:id/reviews', async (request) => {
+    const { id } = request.params as { id: string };
+    const { reviewManager } = ctx;
+
+    const result = await reviewManager.getChangeReviews(id);
+    return result;
+  });
+
+  /**
+   * POST /api/changes/:id/reviews - 添加 review 到 Change
+   */
+  fastify.post('/changes/:id/reviews', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const { targetType, lineNumber, type, severity, body: reviewBody, author } = request.body as {
+      targetType: 'proposal' | 'design' | 'tasks';
+      lineNumber?: number;
+      type: 'comment' | 'suggestion' | 'question' | 'issue';
+      severity?: 'low' | 'medium' | 'high';
+      body: string;
+      author?: string;
+    };
+
+    if (!reviewBody || !type || !targetType) {
+      return reply.status(400).send({ error: 'body, type, and targetType are required' });
+    }
+
+    try {
+      const { reviewManager } = ctx;
+      const review = await reviewManager.addReview({
+        targetType,
+        targetId: id,
+        lineNumber,
+        type,
+        severity,
+        body: reviewBody,
+        author: author || 'user',
+      });
+
+      ctx.broadcast('review:added', { changeId: id, targetType, review }, 'reviews');
+      return { review };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to add review';
+      return reply.status(400).send({ error: message });
+    }
+  });
+
+  /**
+   * PATCH /api/changes/:id/reviews/:reviewId - 解决 review
+   */
+  fastify.patch('/changes/:id/reviews/:reviewId', async (request, reply) => {
+    const { id, reviewId } = request.params as { id: string; reviewId: string };
+    const { targetType, status, resolvedBy } = request.body as {
+      targetType: 'proposal' | 'design' | 'tasks';
+      status: 'resolved' | 'wont_fix';
+      resolvedBy?: string;
+    };
+
+    if (!['resolved', 'wont_fix'].includes(status) || !targetType) {
+      return reply.status(400).send({ error: 'Invalid status or missing targetType' });
+    }
+
+    const { reviewManager } = ctx;
+    const success = await reviewManager.resolveReview(targetType, id, reviewId, resolvedBy || 'user', status);
+    
+    if (!success) {
+      return reply.status(404).send({ error: 'Review not found' });
+    }
+
+    ctx.broadcast('review:resolved', { changeId: id, targetType, reviewId, status }, 'reviews');
+    return { success: true };
+  });
 }

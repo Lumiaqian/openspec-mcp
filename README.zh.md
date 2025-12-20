@@ -7,30 +7,35 @@
 ## 功能特性
 
 - **MCP 工具**: 将 OpenSpec CLI 完整功能暴露为 MCP 工具
+- **评审系统**: 添加、回复、解决 proposal/design 的评审意见
 - **任务追踪**: 解析 tasks.md 并实时追踪进度
 - **审批流程**: 请求、批准和拒绝变更提案
-- **Web 仪表板**: 可视化管理界面
+- **Web 仪表板**: 可视化管理界面，支持 Markdown 渲染和实时更新
 
 ## 快速开始
 
 ### 1. 添加到 MCP 配置
 
 **Claude Code CLI（推荐，使用当前目录）:**
+
 ```bash
 claude mcp add openspec -- npx openspec-mcp
 ```
 
 **Claude Code CLI 带仪表板:**
+
 ```bash
 claude mcp add openspec -- npx openspec-mcp --with-dashboard
 ```
 
 **Claude Code CLI 指定项目路径:**
+
 ```bash
 claude mcp add openspec -- npx openspec-mcp /path/to/your/project
 ```
 
 **Claude Desktop / Cursor / 其他:**
+
 ```json
 {
   "mcpServers": {
@@ -43,6 +48,7 @@ claude mcp add openspec -- npx openspec-mcp /path/to/your/project
 ```
 
 **带仪表板:**
+
 ```json
 {
   "mcpServers": {
@@ -73,46 +79,86 @@ claude mcp add openspec -- npx openspec-mcp /path/to/your/project
 ## 可用工具
 
 ### 指南类 (Guides)
-| 工具 | 描述 |
-|------|------|
-| `openspec_get_instructions` | 获取 AGENTS.md 使用指南 |
+
+| 工具                           | 描述                       |
+| ------------------------------ | -------------------------- |
+| `openspec_get_instructions`    | 获取 AGENTS.md 使用指南    |
 | `openspec_get_project_context` | 获取 project.md 项目上下文 |
 
 ### 管理类 (Management)
-| 工具 | 描述 |
-|------|------|
+
+| 工具                    | 描述             |
+| ----------------------- | ---------------- |
 | `openspec_list_changes` | 列出所有变更提案 |
-| `openspec_list_specs` | 列出所有规格 |
-| `openspec_show_change` | 显示变更详情 |
-| `openspec_show_spec` | 显示规格详情 |
+| `openspec_list_specs`   | 列出所有规格     |
+| `openspec_show_change`  | 显示变更详情     |
+| `openspec_show_spec`    | 显示规格详情     |
 
 ### 验证类 (Validation)
-| 工具 | 描述 |
-|------|------|
+
+| 工具                       | 描述         |
+| -------------------------- | ------------ |
 | `openspec_validate_change` | 验证单个变更 |
-| `openspec_validate_spec` | 验证单个规格 |
-| `openspec_validate_all` | 批量验证 |
+| `openspec_validate_spec`   | 验证单个规格 |
+| `openspec_validate_all`    | 批量验证     |
 
 ### 归档类 (Archive)
-| 工具 | 描述 |
-|------|------|
+
+| 工具                      | 描述           |
+| ------------------------- | -------------- |
 | `openspec_archive_change` | 归档已完成变更 |
 
 ### 任务类 (Tasks)
-| 工具 | 描述 |
-|------|------|
-| `openspec_get_tasks` | 获取任务列表和进度 |
-| `openspec_update_task` | 更新任务状态 |
+
+| 工具                            | 描述                 |
+| ------------------------------- | -------------------- |
+| `openspec_get_tasks`            | 获取任务列表和进度   |
+| `openspec_update_task`          | 更新任务状态         |
+| `openspec_batch_update_tasks`   | 批量更新任务状态     |
 | `openspec_get_progress_summary` | 获取所有变更进度汇总 |
 
 ### 审批类 (Approval)
-| 工具 | 描述 |
-|------|------|
-| `openspec_get_approval_status` | 获取审批状态 |
-| `openspec_request_approval` | 请求审批 |
-| `openspec_approve_change` | 批准变更 |
-| `openspec_reject_change` | 拒绝变更 |
+
+| 工具                              | 描述         |
+| --------------------------------- | ------------ |
+| `openspec_get_approval_status`    | 获取审批状态 |
+| `openspec_request_approval`       | 请求审批     |
+| `openspec_approve_change`         | 批准变更     |
+| `openspec_reject_change`          | 拒绝变更     |
 | `openspec_list_pending_approvals` | 列出待审批项 |
+
+### 评审类 (Reviews)
+
+| 工具                                | 描述                                 |
+| ----------------------------------- | ------------------------------------ |
+| `openspec_add_review`               | 添加评审意见到 proposal/design/tasks |
+| `openspec_list_reviews`             | 列出评审意见（支持过滤）             |
+| `openspec_reply_review`             | 回复评审意见                         |
+| `openspec_resolve_review`           | 标记评审为已解决                     |
+| `openspec_get_review_summary`       | 获取评审统计信息                     |
+| `openspec_check_approval_readiness` | 检查是否可以请求审批                 |
+
+### 模板类 (Templates)
+
+| 工具                        | 描述           |
+| --------------------------- | -------------- |
+| `openspec_list_templates`   | 列出可用模板   |
+| `openspec_create_change`    | 从模板创建变更 |
+| `openspec_preview_template` | 预览模板内容   |
+
+### 生成器类 (Generator)
+
+| 工具                         | 描述           |
+| ---------------------------- | -------------- |
+| `openspec_prepare_proposal`  | 准备提案结构   |
+| `openspec_save_proposal`     | 保存生成的提案 |
+| `openspec_generate_proposal` | 从需求生成提案 |
+
+### Hooks 类
+
+| 工具                   | 描述              |
+| ---------------------- | ----------------- |
+| `openspec_setup_hooks` | 设置项目 Git 钩子 |
 
 ## 审批流程
 
@@ -134,7 +180,7 @@ openspec-mcp [path] [options]
 选项:
   --dashboard             仅启动 Web 仪表板（HTTP 模式）
   --with-dashboard        启动 MCP 服务器并同时启动仪表板
-  -p, --port <number>     仪表板端口（默认：3000）
+  -p, --port <number>     仪表板端口（默认：3000；占用时自动递增，0 为随机端口）
   -V, --version           显示版本号
   -h, --help              显示帮助
 ```
@@ -164,20 +210,22 @@ openspec-mcp --dashboard --port 8080
 
 ### 仪表板页面
 
-| 路由 | 描述 |
-|------|------|
-| `/` | 概览统计和最近变更 |
-| `/changes` | 变更列表及进度 |
+| 路由           | 描述               |
+| -------------- | ------------------ |
+| `/`            | 概览统计和最近变更 |
+| `/changes`     | 变更列表及进度     |
 | `/changes/:id` | 变更详情和任务管理 |
-| `/specs` | 浏览规格文档 |
-| `/approvals` | 审批队列管理 |
+| `/specs`       | 浏览规格文档       |
+| `/approvals`   | 审批队列管理       |
 
 ### 功能亮点
 
-- **实时更新**: WebSocket 连接实现实时进度更新
+- **实时更新**: WebSocket 连接实现进度和评审的实时更新
 - **任务管理**: 直接在 UI 中切换任务状态
 - **审批操作**: 带备注的批准/拒绝操作
 - **进度可视化**: 进度条和状态徽章
+- **评审管理**: 查看、解决和追踪评审，支持 Open/Resolved 切换
+- **Markdown 渲染**: Proposal 和 Design 内容完整支持 Markdown 渲染
 
 ## 开发
 

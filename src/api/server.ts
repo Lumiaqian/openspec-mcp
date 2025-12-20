@@ -8,14 +8,19 @@ import fastifyCors from '@fastify/cors';
 import fastifyWebsocket from '@fastify/websocket';
 import fastifyStatic from '@fastify/static';
 import * as path from 'path';
+import type { AddressInfo } from 'net';
 import { fileURLToPath } from 'url';
 import { OpenSpecCli } from '../core/openspec-cli.js';
 import { ApprovalManager } from '../core/approval-manager.js';
+import { ReviewManager } from '../core/review-manager.js';
 import { FileWatcher } from '../core/file-watcher.js';
+import { SpecParser } from '../core/spec-parser.js';
 import { registerChangesRoutes } from './routes/changes.js';
 import { registerSpecsRoutes } from './routes/specs.js';
 import { registerTasksRoutes } from './routes/tasks.js';
 import { registerApprovalsRoutes } from './routes/approvals.js';
+import { registerProjectRoutes } from './routes/project.js';
+import { VERSION } from '../utils/version.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -28,8 +33,51 @@ export interface ApiServerOptions {
 export interface ApiContext {
   cli: OpenSpecCli;
   approvalManager: ApprovalManager;
+  reviewManager: ReviewManager;
+  specParser: SpecParser;
   fileWatcher: FileWatcher;
-  broadcast: (event: string, data: any) => void;
+  broadcast: (event: string, data: any, topic?: string) => void;
+}
+
+const MAX_PORT_ATTEMPTS = 20;
+
+function isAddressInUse(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    (error as { code?: string }).code === 'EADDRINUSE'
+  );
+}
+
+function resolveActualPort(instance: FastifyInstance, fallback: number): number {
+  const address = instance.server.address();
+  if (address && typeof address === 'object') {
+    return (address as AddressInfo).port ?? fallback;
+  }
+  return fallback;
+}
+
+async function listenWithFallback(instance: FastifyInstance, preferredPort: number): Promise<number> {
+  if (preferredPort === 0) {
+    await instance.listen({ port: 0, host: '0.0.0.0' });
+    return resolveActualPort(instance, preferredPort);
+  }
+
+  let port = preferredPort;
+  for (let attempt = 0; attempt < MAX_PORT_ATTEMPTS; attempt += 1) {
+    try {
+      await instance.listen({ port, host: '0.0.0.0' });
+      return resolveActualPort(instance, port);
+    } catch (error) {
+      if (!isAddressInUse(error)) {
+        throw error;
+      }
+      port += 1;
+    }
+  }
+
+  throw new Error(`No available port found starting from ${preferredPort}`);
 }
 
 /**
@@ -65,18 +113,31 @@ export async function startApiServer(options: ApiServerOptions): Promise<Fastify
   // 创建核心模块
   const cli = new OpenSpecCli({ cwd });
   const approvalManager = new ApprovalManager({ cwd });
+  const reviewManager = new ReviewManager({ cwd });
+  const specParser = new SpecParser({ cwd });
   const fileWatcher = new FileWatcher({ cwd });
 
   // WebSocket 客户端列表
   const wsClients = new Set<any>();
 
-  // 广播函数
-  const broadcast = (event: string, data: any) => {
+  // 客户端订阅管理 (socket -> Set<topic>)
+  const subscriptions = new Map<any, Set<string>>();
+
+  // 广播函数 (支持按主题过滤)
+  const broadcast = (event: string, data: any, topic?: string) => {
     const message = JSON.stringify({ event, data, timestamp: new Date().toISOString() });
     for (const client of wsClients) {
       if (client.readyState === 1) {
         // OPEN
-        client.send(message);
+        // 如果指定了主题，只发送给订阅了该主题的客户端
+        if (topic) {
+          const clientTopics = subscriptions.get(client);
+          if (clientTopics?.has(topic) || clientTopics?.has('*')) {
+            client.send(message);
+          }
+        } else {
+          client.send(message);
+        }
       }
     }
   };
@@ -85,6 +146,8 @@ export async function startApiServer(options: ApiServerOptions): Promise<Fastify
   const ctx: ApiContext = {
     cli,
     approvalManager,
+    reviewManager,
+    specParser,
     fileWatcher,
     broadcast,
   };
@@ -94,7 +157,8 @@ export async function startApiServer(options: ApiServerOptions): Promise<Fastify
     const { socket } = connection;
 
     wsClients.add(socket);
-    console.log(`WebSocket client connected. Total: ${wsClients.size}`);
+    subscriptions.set(socket, new Set(['*'])); // 默认订阅所有
+    fastify.log.info(`WebSocket client connected. Total: ${wsClients.size}`);
 
     // 发送欢迎消息
     socket.send(
@@ -108,20 +172,49 @@ export async function startApiServer(options: ApiServerOptions): Promise<Fastify
     socket.on('message', (message: any) => {
       try {
         const data = JSON.parse(message.toString());
-        console.log('WebSocket message:', data);
+        fastify.log.info({ msg: 'WebSocket message', data });
 
-        // 处理订阅请求等
+        // 处理订阅请求
         if (data.type === 'subscribe') {
-          // TODO: 实现订阅逻辑
+          const topics = (data.topics as string[]) || [];
+          const clientSubs = subscriptions.get(socket) || new Set();
+          topics.forEach((t) => clientSubs.add(t));
+          subscriptions.set(socket, clientSubs);
+
+          socket.send(
+            JSON.stringify({
+              event: 'subscribed',
+              data: { topics: Array.from(clientSubs) },
+              timestamp: new Date().toISOString(),
+            })
+          );
+        }
+
+        // 处理取消订阅
+        if (data.type === 'unsubscribe') {
+          const topics = (data.topics as string[]) || [];
+          const clientSubs = subscriptions.get(socket);
+          if (clientSubs) {
+            topics.forEach((t) => clientSubs.delete(t));
+          }
+
+          socket.send(
+            JSON.stringify({
+              event: 'unsubscribed',
+              data: { topics, remaining: clientSubs ? Array.from(clientSubs) : [] },
+              timestamp: new Date().toISOString(),
+            })
+          );
         }
       } catch (e) {
-        console.error('Invalid WebSocket message:', e);
+        fastify.log.error({ msg: 'Invalid WebSocket message', error: e });
       }
     });
 
     socket.on('close', () => {
       wsClients.delete(socket);
-      console.log(`WebSocket client disconnected. Total: ${wsClients.size}`);
+      subscriptions.delete(socket);
+      fastify.log.info(`WebSocket client disconnected. Total: ${wsClients.size}`);
     });
   });
 
@@ -132,13 +225,14 @@ export async function startApiServer(options: ApiServerOptions): Promise<Fastify
       registerSpecsRoutes(instance, ctx);
       registerTasksRoutes(instance, ctx);
       registerApprovalsRoutes(instance, ctx);
+      registerProjectRoutes(instance, ctx);
     },
     { prefix: '/api' }
   );
 
   // 健康检查
   fastify.get('/health', async () => {
-    return { status: 'ok', version: '0.1.0' };
+    return { status: 'ok', version: VERSION };
   });
 
   // SPA fallback - 所有非 API 路由返回 index.html
@@ -150,16 +244,34 @@ export async function startApiServer(options: ApiServerOptions): Promise<Fastify
   });
 
   // 启动文件监控
-  fileWatcher.on('change', (event, filePath) => {
-    broadcast('file:changed', { event, filePath });
+  fileWatcher.on('change', (event, fileInfo) => {
+    broadcast('file:changed', { event, filePath: fileInfo });
+    
+    // 处理 review 文件变化 - 广播 reviews:updated 事件
+    if (typeof fileInfo === 'object' && fileInfo.type?.startsWith('review:')) {
+      const targetType = fileInfo.type.replace('review:', '');
+      const match = fileInfo.path?.match(/reviews\/changes\/([^/]+)\//);
+      const changeId = match ? match[1] : null;
+      
+      if (changeId && ['proposal', 'design', 'tasks'].includes(targetType)) {
+        broadcast('reviews:updated', { 
+          changeId, 
+          targetType,
+          timestamp: new Date().toISOString()
+        }, 'reviews');
+      }
+    }
   });
 
   await fileWatcher.start();
 
   // 启动服务器
   try {
-    await fastify.listen({ port, host: '0.0.0.0' });
-    console.log(`\n🚀 OpenSpec MCP Dashboard running at http://localhost:${port}`);
+    const actualPort = await listenWithFallback(fastify, port);
+    if (actualPort !== port || port === 0) {
+      fastify.log.warn(`Dashboard port ${port} unavailable, using ${actualPort} instead`);
+    }
+    console.log(`\n🚀 OpenSpec MCP Dashboard running at http://localhost:${actualPort}`);
     console.log(`📁 Watching: ${cwd}/openspec`);
   } catch (err) {
     fastify.log.error(err);
