@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { specsApi } from '../api/client';
 import { useWebSocket } from '../hooks/useWebSocket';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface Review {
   id: string;
@@ -244,12 +246,14 @@ export default function SpecList() {
               </div>
               
               <div 
-                className="flex-1 overflow-y-auto p-6 font-mono text-sm leading-relaxed relative"
+                className="flex-1 overflow-y-auto p-6 relative"
                 ref={contentRef}
                 onMouseUp={handleTextMouseUp}
               >
-                <div className="whitespace-pre-wrap text-gray-800">
-                  {selectedSpec.content}
+                <div className="prose prose-sm max-w-none prose-headings:font-bold prose-h1:text-xl prose-h2:text-lg prose-h3:text-base prose-code:bg-gray-100 prose-code:px-1 prose-code:rounded prose-pre:bg-gray-50">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {selectedSpec.content}
+                  </ReactMarkdown>
                 </div>
 
                 {/* Floating Review Box */}
