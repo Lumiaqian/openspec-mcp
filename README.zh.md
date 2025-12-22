@@ -10,6 +10,7 @@
 - **评审系统**: 添加、回复、解决 proposal/design 的评审意见
 - **任务追踪**: 解析 tasks.md 并实时追踪进度
 - **审批流程**: 请求、批准和拒绝变更提案
+- **跨服务文档**: 在单服务项目中查看跨服务设计文档
 - **Web 仪表板**: 可视化管理界面，支持 Markdown 渲染和实时更新
 
 ## 快速开始
@@ -160,6 +161,13 @@ claude mcp add openspec -- npx openspec-mcp /path/to/your/project
 | ---------------------- | ----------------- |
 | `openspec_setup_hooks` | 设置项目 Git 钩子 |
 
+### 跨服务类 (Cross-Service)
+
+| 工具                               | 描述           |
+| ---------------------------------- | -------------- |
+| `openspec_list_cross_service_docs` | 列出跨服务文档 |
+| `openspec_read_cross_service_doc`  | 读取跨服务文档 |
+
 ## 审批流程
 
 ```
@@ -168,6 +176,28 @@ draft -> pending_approval -> approved -> implementing -> completed -> archived
 ```
 
 审批记录存储在 `openspec/approvals/<change-id>.json`。
+
+## 跨服务文档
+
+对于共享 `.cross-service/` 目录的多服务项目（如 Git worktree），在 `proposal.md` frontmatter 中配置：
+
+```yaml
+---
+crossService:
+  rootPath: "../../../../.cross-service" # 相对于 change 目录的路径
+  documents:
+    - design.md
+    - flows.md
+    - services.yaml
+  archivePolicy: snapshot # 'snapshot'（默认）或 'reference'
+---
+# 你的 proposal 内容...
+```
+
+仪表板将显示 “Cross-Service” 标签页：
+
+- **design.md / flows.md**: 渲染为 Markdown
+- **services.yaml**: 可视化卡片视图，展示服务状态、变更列表和部署顺序
 
 ## CLI 选项
 
@@ -225,6 +255,7 @@ openspec-mcp --dashboard --port 8080
 - **审批操作**: 带备注的批准/拒绝操作
 - **进度可视化**: 进度条和状态徽章
 - **评审管理**: 查看、解决和追踪评审，支持 Open/Resolved 切换
+- **跨服务文档**: 查看跨服务设计文档，services.yaml 可视化展示
 - **Markdown 渲染**: Proposal 和 Design 内容完整支持 Markdown 渲染
 
 ## 开发

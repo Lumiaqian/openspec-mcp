@@ -10,6 +10,7 @@ MCP (Model Context Protocol) server for [OpenSpec](https://github.com/Fission-AI
 - **Review System**: Add, reply, resolve review comments on proposals/designs
 - **Task Tracking**: Parse tasks.md and track progress in real-time
 - **Approval Workflow**: Request, approve, and reject change proposals
+- **Cross-Service Docs**: View cross-service design documents from single service projects
 - **Web Dashboard**: Visual management interface with real-time updates and Markdown rendering
 
 ## Quick Start
@@ -160,6 +161,35 @@ claude mcp add openspec -- npx openspec-mcp /path/to/your/project
 | ---------------------- | --------------------------- |
 | `openspec_setup_hooks` | Setup git hooks for project |
 
+### Cross-Service
+
+| Tool                               | Description                   |
+| ---------------------------------- | ----------------------------- |
+| `openspec_list_cross_service_docs` | List cross-service documents  |
+| `openspec_read_cross_service_doc`  | Read a cross-service document |
+
+## Cross-Service Documentation
+
+For multi-service projects sharing a common `.cross-service/` directory (e.g., in a Git worktree), configure your `proposal.md` frontmatter:
+
+```yaml
+---
+crossService:
+  rootPath: "../../../../.cross-service" # Relative to change directory
+  documents:
+    - design.md
+    - flows.md
+    - services.yaml
+  archivePolicy: snapshot # 'snapshot' (default) or 'reference'
+---
+# Your proposal content...
+```
+
+The Dashboard will display a "Cross-Service" tab with:
+
+- **design.md / flows.md**: Rendered as Markdown
+- **services.yaml**: Visual card view with service status, changes, and deployment order
+
 ## Approval Workflow
 
 ```
@@ -225,6 +255,7 @@ The dashboard provides a visual interface for managing changes, tracking tasks, 
 - **Approval Actions**: Approve/reject changes with comments
 - **Progress Visualization**: Progress bars and status badges
 - **Review Management**: View, resolve and track reviews with Open/Resolved tabs
+- **Cross-Service Docs**: View cross-service design documents with visual services.yaml display
 - **Markdown Rendering**: Proposals and designs rendered with full Markdown support
 
 ## Development
