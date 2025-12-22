@@ -14,6 +14,7 @@ export interface FileWatcherOptions {
 export class FileWatcher extends EventEmitter {
   private cwd: string;
   private watcher: FSWatcher | null = null;
+  private crossServicePaths: Set<string> = new Set();
 
   constructor(options: FileWatcherOptions) {
     super();
@@ -70,6 +71,22 @@ export class FileWatcher extends EventEmitter {
   }
 
   /**
+   * 添加跨服务目录监控
+   */
+  addCrossServicePath(crossServicePath: string): void {
+    if (this.crossServicePaths.has(crossServicePath)) {
+      return;
+    }
+
+    this.crossServicePaths.add(crossServicePath);
+
+    if (this.watcher) {
+      this.watcher.add(crossServicePath);
+      console.log(`Added cross-service path to watcher: ${crossServicePath}`);
+    }
+  }
+
+  /**
    * 处理文件变化
    */
   private handleChange(event: string, filePath: string): void {
@@ -97,6 +114,22 @@ export class FileWatcher extends EventEmitter {
    * 获取文件类型
    */
   private getFileType(relativePath: string): string {
+    // 检查是否为跨服务文件
+    for (const csPath of this.crossServicePaths) {
+      if (relativePath.includes('.cross-service') || relativePath.includes('cross-service')) {
+        if (relativePath.endsWith('services.yaml') || relativePath.endsWith('services.yml')) {
+          return 'cross-service:services';
+        }
+        if (relativePath.endsWith('design.md')) {
+          return 'cross-service:design';
+        }
+        if (relativePath.endsWith('flows.md')) {
+          return 'cross-service:flows';
+        }
+        return 'cross-service';
+      }
+    }
+
     if (relativePath.includes('openspec/specs/')) {
       return 'spec';
     }

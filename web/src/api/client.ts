@@ -67,6 +67,18 @@ export const changesApi = {
       method: 'PATCH',
       body: JSON.stringify({ targetType, status }),
     }),
+
+  // Cross-Service Documents
+  getCrossServiceInfo: (id: string) =>
+    fetchJson<{
+      config: { rootPath: string; documents: string[]; archivePolicy?: string } | null;
+      documents: { name: string; path: string; content: string; isSnapshot?: boolean }[];
+    }>(`/changes/${id}/cross-service`),
+
+  getCrossServiceDoc: (id: string, docName: string) =>
+    fetchJson<{ name: string; path: string; content: string; isSnapshot?: boolean }>(
+      `/changes/${id}/cross-service/${encodeURIComponent(docName)}`
+    ),
 };
 
 // Specs API

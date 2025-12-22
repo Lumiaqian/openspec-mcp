@@ -138,4 +138,34 @@ export function registerChangesRoutes(fastify: FastifyInstance, ctx: ApiContext)
     ctx.broadcast('review:resolved', { changeId: id, targetType, reviewId, status }, 'reviews');
     return { success: true };
   });
+
+  /**
+   * GET /api/changes/:id/cross-service - 获取跨服务文档列表
+   */
+  fastify.get('/changes/:id/cross-service', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const { crossServiceManager } = ctx;
+
+    const info = await crossServiceManager.getCrossServiceInfo(id);
+    if (!info) {
+      return { config: null, documents: [] };
+    }
+
+    return info;
+  });
+
+  /**
+   * GET /api/changes/:id/cross-service/:docName - 获取单个跨服务文档
+   */
+  fastify.get('/changes/:id/cross-service/:docName', async (request, reply) => {
+    const { id, docName } = request.params as { id: string; docName: string };
+    const { crossServiceManager } = ctx;
+
+    const doc = await crossServiceManager.readDocument(id, decodeURIComponent(docName));
+    if (!doc) {
+      return reply.status(404).send({ error: 'Document not found' });
+    }
+
+    return doc;
+  });
 }

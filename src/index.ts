@@ -26,6 +26,8 @@ import { registerReviewTools } from './server/tools/reviews.js';
 import { registerTemplatesTools } from './server/tools/templates.js';
 import { registerHooksTools } from './server/tools/hooks.js';
 import { registerGeneratorTools } from './server/tools/generator.js';
+import { registerCrossServiceTools } from './server/tools/cross-service.js';
+import { CrossServiceManager } from './core/cross-service-manager.js';
 import { VERSION } from './utils/version.js';
 
 /**
@@ -56,6 +58,10 @@ function createMcpServer(cwd: string): McpServer {
   registerTemplatesTools(server, templateManager);
   registerHooksTools(server, hooksManager);
   registerGeneratorTools(server, proposalGenerator);
+
+  // 跨服务文档管理
+  const crossServiceManager = new CrossServiceManager({ cwd });
+  registerCrossServiceTools(server, crossServiceManager);
 
   return server;
 }

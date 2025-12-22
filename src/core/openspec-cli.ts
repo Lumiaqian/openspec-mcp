@@ -16,8 +16,11 @@ import type {
   ValidationError,
   Task,
   Progress,
+  CrossServiceInfo,
 } from '../types/openspec.js';
 import { TaskParser } from './task-parser.js';
+import { CrossServiceManager } from './cross-service-manager.js';
+import matter from 'gray-matter';
 
 const execAsync = promisify(exec);
 
@@ -312,10 +315,12 @@ export class OpenSpecCli {
 
     if (!change) return null;
 
-    // 读取 proposal
+    // 读取 proposal（使用 gray-matter 移除 frontmatter）
     let proposal = '';
     try {
-      proposal = await fs.readFile(path.join(changeDir, 'proposal.md'), 'utf-8');
+      const proposalRaw = await fs.readFile(path.join(changeDir, 'proposal.md'), 'utf-8');
+      const { content } = matter(proposalRaw);
+      proposal = content;
     } catch {
       // 没有 proposal.md
     }
@@ -360,12 +365,22 @@ export class OpenSpecCli {
       // 没有 specs 目录
     }
 
+    // 读取跨服务文档
+    let crossService: CrossServiceInfo | undefined;
+    try {
+      const crossServiceManager = new CrossServiceManager({ cwd: this.cwd });
+      crossService = await crossServiceManager.getCrossServiceInfo(changeId) || undefined;
+    } catch {
+      // 无跨服务配置
+    }
+
     return {
       ...change,
       proposal,
       design,
       tasks,
       deltas,
+      crossService,
     };
   }
 

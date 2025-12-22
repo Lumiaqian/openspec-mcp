@@ -41,6 +41,34 @@ export interface ChangeDetail extends Change {
   design?: string;           // design.md 内容 (可选)
   tasks: Task[];
   deltas: Delta[];
+  crossService?: CrossServiceInfo;  // 跨服务文档 (可选)
+}
+
+/**
+ * 跨服务配置 (proposal.md frontmatter)
+ */
+export interface CrossServiceConfig {
+  rootPath: string;                           // 相对于 change 目录的路径
+  documents: string[];                        // 文档列表
+  archivePolicy?: 'snapshot' | 'reference';   // 归档策略，默认 snapshot
+}
+
+/**
+ * 跨服务文档
+ */
+export interface CrossServiceDocument {
+  name: string;               // 文件名
+  path: string;               // 完整路径
+  content: string;            // 文件内容
+  isSnapshot?: boolean;       // 是否为快照
+}
+
+/**
+ * 跨服务信息
+ */
+export interface CrossServiceInfo {
+  config: CrossServiceConfig;
+  documents: CrossServiceDocument[];
 }
 
 /**

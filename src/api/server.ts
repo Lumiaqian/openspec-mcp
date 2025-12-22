@@ -20,6 +20,7 @@ import { registerSpecsRoutes } from './routes/specs.js';
 import { registerTasksRoutes } from './routes/tasks.js';
 import { registerApprovalsRoutes } from './routes/approvals.js';
 import { registerProjectRoutes } from './routes/project.js';
+import { CrossServiceManager } from '../core/cross-service-manager.js';
 import { VERSION } from '../utils/version.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -36,6 +37,7 @@ export interface ApiContext {
   reviewManager: ReviewManager;
   specParser: SpecParser;
   fileWatcher: FileWatcher;
+  crossServiceManager: CrossServiceManager;
   broadcast: (event: string, data: any, topic?: string) => void;
 }
 
@@ -116,6 +118,7 @@ export async function startApiServer(options: ApiServerOptions): Promise<Fastify
   const reviewManager = new ReviewManager({ cwd });
   const specParser = new SpecParser({ cwd });
   const fileWatcher = new FileWatcher({ cwd });
+  const crossServiceManager = new CrossServiceManager({ cwd });
 
   // WebSocket 客户端列表
   const wsClients = new Set<any>();
@@ -149,6 +152,7 @@ export async function startApiServer(options: ApiServerOptions): Promise<Fastify
     reviewManager,
     specParser,
     fileWatcher,
+    crossServiceManager,
     broadcast,
   };
 
@@ -290,10 +294,35 @@ export async function startApiServer(options: ApiServerOptions): Promise<Fastify
           }, 'changes');
         }
       }
+
+      // 跨服务文件变化 - 广播 cross-service:updated 事件
+      if (type?.startsWith('cross-service')) {
+        const fileName = fileInfo.path?.split('/').pop() || '';
+        broadcast('cross-service:updated', { 
+          fileName,
+          docType: type.replace('cross-service:', ''),
+          timestamp: new Date().toISOString()
+        }, 'cross-service');
+      }
     }
   });
 
   await fileWatcher.start();
+
+  // 扫描活跃 changes 的跨服务目录并添加监控
+  try {
+    const changes = await cli.listChanges({ includeArchived: false });
+    for (const change of changes) {
+      const info = await crossServiceManager.getCrossServiceInfo(change.id);
+      if (info?.config?.rootPath) {
+        const changesDir = path.join(cwd, 'openspec', 'changes', change.id);
+        const crossServicePath = path.resolve(changesDir, info.config.rootPath);
+        fileWatcher.addCrossServicePath(crossServicePath);
+      }
+    }
+  } catch (err) {
+    console.log('No cross-service paths to watch or error scanning:', err);
+  }
 
   // 启动服务器
   try {

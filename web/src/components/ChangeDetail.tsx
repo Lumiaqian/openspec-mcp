@@ -4,6 +4,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { changesApi, tasksApi } from '../api/client';
 import { useWebSocket } from '../hooks/useWebSocket';
+import CrossServiceDocs from './CrossServiceDocs';
 
 interface Review {
   id: string;
@@ -46,7 +47,7 @@ export default function ChangeDetail() {
   const [tasks, setTasks] = useState<any[]>([]);
   const [progress, setProgress] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'proposal' | 'tasks' | 'design'>('proposal');
+  const [activeTab, setActiveTab] = useState<'proposal' | 'tasks' | 'design' | 'cross-service'>('proposal');
   const [showResolved, setShowResolved] = useState(false);
   
   // Reviews state
@@ -197,9 +198,11 @@ export default function ChangeDetail() {
     );
   }
 
-  // Get reviews for current tab
-  const openReviews = reviews[activeTab].filter(r => r.status === 'open');
-  const resolvedReviews = reviews[activeTab].filter(r => r.status !== 'open');
+  // Get reviews for current tab (cross-service tab has no reviews)
+  const reviewableTab = activeTab === 'cross-service' ? null : activeTab;
+  const tabReviewList = reviewableTab ? reviews[reviewableTab] : [];
+  const openReviews = tabReviewList.filter((r: Review) => r.status === 'open');
+  const resolvedReviews = tabReviewList.filter((r: Review) => r.status !== 'open');
   const currentReviews = showResolved ? resolvedReviews : openReviews;
   const hasBlockingIssues = reviews.summary?.hasBlockingIssues || false;
 
@@ -286,6 +289,17 @@ export default function ChangeDetail() {
                   </button>
                 );
               })}
+              {/* Cross-Service Tab */}
+              <button
+                onClick={() => setActiveTab('cross-service')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center ${
+                  activeTab === 'cross-service'
+                    ? 'border-purple-500 text-purple-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                🔗 Cross-Service
+              </button>
             </nav>
           </div>
 
@@ -370,6 +384,10 @@ export default function ChangeDetail() {
                 )}
               </div>
             )}
+
+            {activeTab === 'cross-service' && id && (
+              <CrossServiceDocs changeId={id} />
+            )}
           </div>
         </div>
 
@@ -436,9 +454,9 @@ export default function ChangeDetail() {
                         )}
                       </div>
                       {/* Only show resolve button for open reviews */}
-                      {review.status === 'open' ? (
+                      {review.status === 'open' && reviewableTab ? (
                         <button
-                          onClick={() => handleResolveReview(review.id, activeTab)}
+                          onClick={() => handleResolveReview(review.id, reviewableTab)}
                           className="text-green-500 hover:text-green-700 opacity-0 group-hover:opacity-100 transition-opacity"
                           title="Resolve"
                         >
