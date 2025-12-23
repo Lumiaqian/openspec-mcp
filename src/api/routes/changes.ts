@@ -140,6 +140,52 @@ export function registerChangesRoutes(fastify: FastifyInstance, ctx: ApiContext)
   });
 
   /**
+   * GET /api/changes/:id/specs - 获取 Change 关联的所有 specs
+   */
+  fastify.get('/changes/:id/specs', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    
+    try {
+      // 获取 change 目录下的 specs
+      const specsDir = `${cli['getOpenSpecDir']()}/changes/${id}/specs`;
+      const specs: Array<{ id: string; title: string; content: string }> = [];
+      
+      const fs = await import('fs/promises');
+      const path = await import('path');
+      
+      try {
+        const entries = await fs.readdir(specsDir, { withFileTypes: true });
+        
+        for (const entry of entries) {
+          if (!entry.isDirectory()) continue;
+          
+          const specPath = path.join(specsDir, entry.name, 'spec.md');
+          try {
+            const content = await fs.readFile(specPath, 'utf-8');
+            const titleMatch = content.match(/^#\s+(.+)/m);
+            const title = titleMatch ? titleMatch[1].trim() : entry.name;
+            
+            specs.push({
+              id: entry.name,
+              title,
+              content,
+            });
+          } catch {
+            // 没有 spec.md
+          }
+        }
+      } catch {
+        // specs 目录不存在
+      }
+      
+      return { specs };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to get specs';
+      return reply.status(500).send({ error: message });
+    }
+  });
+
+  /**
    * GET /api/changes/:id/cross-service - 获取跨服务文档列表
    */
   fastify.get('/changes/:id/cross-service', async (request, reply) => {

@@ -77,14 +77,24 @@ claude mcp add openspec -- npx openspec-mcp /path/to/your/project
 "Request approval for add-user-auth from @reviewer"
 ```
 
+## Available Prompts (New!)
+
+Directly leverage your Client's AI capabilities (Claude, Codex) with context-aware prompts.
+
+| Prompt            | Description                                     |
+| ----------------- | ----------------------------------------------- |
+| `analyze-project` | Deep analysis of project architecture and stack |
+| `review-change`   | Intelligent review of changes with linked specs |
+
 ## Available Tools
 
-### Guides
+### Guides & Context
 
-| Tool                           | Description               |
-| ------------------------------ | ------------------------- |
-| `openspec_get_instructions`    | Get AGENTS.md usage guide |
-| `openspec_get_project_context` | Get project.md context    |
+| Tool                           | Description                  |
+| ------------------------------ | ---------------------------- |
+| `openspec_get_instructions`    | Get AGENTS.md usage guide    |
+| `openspec_get_project_context` | Get project.md context       |
+| `openspec_ai_analyze_context`  | AI-enhanced context analysis |
 
 ### Management
 
@@ -243,14 +253,20 @@ The dashboard provides a visual interface for managing changes, tracking tasks, 
 | Route          | Description                            |
 | -------------- | -------------------------------------- |
 | `/`            | Overview with stats and recent changes |
+| `/kanban`      | Drag-and-drop Kanban board             |
 | `/changes`     | List all changes with progress         |
-| `/changes/:id` | Change detail with task management     |
+| `/changes/:id` | Change detail with Specs & Tasks       |
+| `/qa`          | QA Runner dashboard                    |
+| `/context`     | Project analysis & Tech stack          |
 | `/specs`       | Browse specifications                  |
 | `/approvals`   | Approval queue management              |
 
 ### Features
 
 - **Real-time Updates**: WebSocket connection for live progress and review updates
+- **Kanban Board**: 6-column workflow (Backlog -> Released) with drag-and-drop support
+- **QA Dashboard**: Monitor and trigger quality checks directly from UI
+- **Context Analysis**: Auto-detect tech stack and visualize directory structure
 - **Task Management**: Toggle task status directly from the UI
 - **Approval Actions**: Approve/reject changes with comments
 - **Progress Visualization**: Progress bars and status badges

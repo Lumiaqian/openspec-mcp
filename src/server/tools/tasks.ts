@@ -12,11 +12,13 @@ export function registerTasksTools(server: McpServer, cli: OpenSpecCli): void {
   /**
    * 获取变更的任务列表和进度
    */
-  server.tool(
+  server.registerTool(
     'openspec_get_tasks',
-    'Get tasks and progress for a change',
     {
-      changeId: z.string().describe('Change ID'),
+      description: 'Get tasks and progress for a change',
+      inputSchema: {
+        changeId: z.string().describe('Change ID'),
+      },
     },
     async ({ changeId }) => {
       const { tasks, progress } = await cli.getTasks(changeId);
@@ -56,15 +58,17 @@ export function registerTasksTools(server: McpServer, cli: OpenSpecCli): void {
   /**
    * 更新任务状态
    */
-  server.tool(
+  server.registerTool(
     'openspec_update_task',
-    'Update task status',
     {
-      changeId: z.string().describe('Change ID'),
-      taskId: z.string().describe('Task ID (e.g., 1.1, 2.3)'),
-      status: z
-        .enum(['pending', 'in_progress', 'done'])
-        .describe('New status'),
+      description: 'Update task status',
+      inputSchema: {
+        changeId: z.string().describe('Change ID'),
+        taskId: z.string().describe('Task ID (e.g., 1.1, 2.3)'),
+        status: z
+          .enum(['pending', 'in_progress', 'done'])
+          .describe('New status'),
+      },
     },
     async ({ changeId, taskId, status }) => {
       const result = await cli.updateTaskStatus(changeId, taskId, status);
@@ -97,10 +101,12 @@ export function registerTasksTools(server: McpServer, cli: OpenSpecCli): void {
   /**
    * 获取所有变更的进度汇总
    */
-  server.tool(
+  server.registerTool(
     'openspec_get_progress_summary',
-    'Get progress summary for all changes',
-    {},
+    {
+      description: 'Get progress summary for all changes',
+      inputSchema: {},
+    },
     async () => {
       const changes = await cli.listChanges();
       const summaries: ProgressSummary[] = [];
@@ -153,19 +159,21 @@ export function registerTasksTools(server: McpServer, cli: OpenSpecCli): void {
   /**
    * 批量更新任务状态
    */
-  server.tool(
+  server.registerTool(
     'openspec_batch_update_tasks',
-    'Batch update multiple task statuses in a change',
     {
-      changeId: z.string().describe('Change ID'),
-      updates: z
-        .array(
-          z.object({
-            taskId: z.string().describe('Task ID (e.g., 1.1, 2.3)'),
-            status: z.enum(['pending', 'in_progress', 'done']).describe('New status'),
-          })
-        )
-        .describe('Array of task updates'),
+      description: 'Batch update multiple task statuses in a change',
+      inputSchema: {
+        changeId: z.string().describe('Change ID'),
+        updates: z
+          .array(
+            z.object({
+              taskId: z.string().describe('Task ID (e.g., 1.1, 2.3)'),
+              status: z.enum(['pending', 'in_progress', 'done']).describe('New status'),
+            })
+          )
+          .describe('Array of task updates'),
+      },
     },
     async ({ changeId, updates }) => {
       const results: { taskId: string; success: boolean; error?: string }[] = [];

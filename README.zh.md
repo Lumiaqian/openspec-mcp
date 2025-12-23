@@ -77,14 +77,24 @@ claude mcp add openspec -- npx openspec-mcp /path/to/your/project
 "向 @reviewer 请求审批 add-user-auth"
 ```
 
+## 可用 Prompts (New!)
+
+直接利用 Client 的 AI 能力 (Claude, Codex) 并结合上下文感知 Prompt。
+
+| Prompt            | 描述                     |
+| ----------------- | ------------------------ |
+| `analyze-project` | 深度分析项目架构和技术栈 |
+| `review-change`   | 智能审查变更及其关联规格 |
+
 ## 可用工具
 
-### 指南类 (Guides)
+### 指南与上下文 (Guides & Context)
 
 | 工具                           | 描述                       |
 | ------------------------------ | -------------------------- |
 | `openspec_get_instructions`    | 获取 AGENTS.md 使用指南    |
 | `openspec_get_project_context` | 获取 project.md 项目上下文 |
+| `openspec_ai_analyze_context`  | AI 增强的上下文分析        |
 
 ### 管理类 (Management)
 
@@ -138,6 +148,31 @@ claude mcp add openspec -- npx openspec-mcp /path/to/your/project
 | `openspec_resolve_review`           | 标记评审为已解决                     |
 | `openspec_get_review_summary`       | 获取评审统计信息                     |
 | `openspec_check_approval_readiness` | 检查是否可以请求审批                 |
+
+### 评审自审类 (Critique)
+
+| 工具                            | 描述                               |
+| ------------------------------- | ---------------------------------- |
+| `openspec_critique_proposal`    | 评审 proposal/design，识别潜在问题 |
+| `openspec_get_critique_history` | 获取评审历史记录                   |
+| `openspec_get_latest_critique`  | 获取最新评审结果                   |
+
+### 质量检查类 (QA)
+
+| 工具                      | 描述                           |
+| ------------------------- | ------------------------------ |
+| `openspec_run_qa`         | 运行质量检查（类型/lint/测试） |
+| `openspec_get_qa_status`  | 获取 QA 状态                   |
+| `openspec_get_qa_history` | 获取 QA 历史记录               |
+| `openspec_stop_qa`        | 停止正在运行的 QA              |
+| `openspec_get_qa_summary` | 获取所有变更的 QA 汇总         |
+
+### 上下文类 (Context)
+
+| 工具                           | 描述                          |
+| ------------------------------ | ----------------------------- |
+| `openspec_analyze_context`     | 分析项目上下文（技术栈/结构） |
+| `openspec_get_context_summary` | 获取项目上下文摘要            |
 
 ### 模板类 (Templates)
 

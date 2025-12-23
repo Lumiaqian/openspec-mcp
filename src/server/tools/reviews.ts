@@ -11,25 +11,27 @@ export function registerReviewTools(server: McpServer, reviewManager: ReviewMana
   /**
    * 添加评审意见
    */
-  server.tool(
+  server.registerTool(
     'openspec_add_review',
-    'Add a review comment to a change or spec',
     {
-      targetType: z
-        .enum(['proposal', 'design', 'spec', 'tasks'])
-        .describe('Type of target to review'),
-      targetId: z.string().describe('Change ID or Spec ID'),
-      lineNumber: z.number().int().positive().optional().describe('Line number (optional)'),
-      type: z
-        .enum(['comment', 'suggestion', 'question', 'issue'])
-        .describe('Type of review'),
-      severity: z
-        .enum(['low', 'medium', 'high'])
-        .optional()
-        .describe('Severity (for issues)'),
-      body: z.string().describe('Review comment content'),
-      suggestedChange: z.string().optional().describe('Suggested code change'),
-      author: z.string().default('ai').describe('Author of the review'),
+      description: 'Add a review comment to a change or spec',
+      inputSchema: {
+        targetType: z
+          .enum(['proposal', 'design', 'spec', 'tasks'])
+          .describe('Type of target to review'),
+        targetId: z.string().describe('Change ID or Spec ID'),
+        lineNumber: z.number().int().positive().optional().describe('Line number (optional)'),
+        type: z
+          .enum(['comment', 'suggestion', 'question', 'issue'])
+          .describe('Type of review'),
+        severity: z
+          .enum(['low', 'medium', 'high'])
+          .optional()
+          .describe('Severity (for issues)'),
+        body: z.string().describe('Review comment content'),
+        suggestedChange: z.string().optional().describe('Suggested code change'),
+        author: z.string().default('ai').describe('Author of the review'),
+      },
     },
     async ({ targetType, targetId, lineNumber, type, severity, body, suggestedChange, author }) => {
       const review = await reviewManager.addReview({
@@ -64,14 +66,16 @@ export function registerReviewTools(server: McpServer, reviewManager: ReviewMana
   /**
    * 列出评审意见
    */
-  server.tool(
+  server.registerTool(
     'openspec_list_reviews',
-    'List review comments for a change or spec',
     {
-      targetType: z.enum(['proposal', 'design', 'spec', 'tasks']),
-      targetId: z.string(),
-      status: z.enum(['open', 'resolved', 'wont_fix']).optional(),
-      type: z.enum(['comment', 'suggestion', 'question', 'issue']).optional(),
+      description: 'List review comments for a change or spec',
+      inputSchema: {
+        targetType: z.enum(['proposal', 'design', 'spec', 'tasks']),
+        targetId: z.string(),
+        status: z.enum(['open', 'resolved', 'wont_fix']).optional(),
+        type: z.enum(['comment', 'suggestion', 'question', 'issue']).optional(),
+      },
     },
     async ({ targetType, targetId, status, type }) => {
       const reviews = await reviewManager.listReviews(
@@ -109,15 +113,17 @@ export function registerReviewTools(server: McpServer, reviewManager: ReviewMana
   /**
    * 回复评审意见
    */
-  server.tool(
+  server.registerTool(
     'openspec_reply_review',
-    'Reply to a review comment',
     {
-      targetType: z.enum(['proposal', 'design', 'spec', 'tasks']),
-      targetId: z.string(),
-      reviewId: z.string(),
-      body: z.string(),
-      author: z.string().default('ai'),
+      description: 'Reply to a review comment',
+      inputSchema: {
+        targetType: z.enum(['proposal', 'design', 'spec', 'tasks']),
+        targetId: z.string(),
+        reviewId: z.string(),
+        body: z.string(),
+        author: z.string().default('ai'),
+      },
     },
     async ({ targetType, targetId, reviewId, body, author }) => {
       const reply = await reviewManager.addReply(
@@ -144,15 +150,17 @@ export function registerReviewTools(server: McpServer, reviewManager: ReviewMana
   /**
    * 解决评审意见
    */
-  server.tool(
+  server.registerTool(
     'openspec_resolve_review',
-    'Mark a review as resolved or won\'t fix',
     {
-      targetType: z.enum(['proposal', 'design', 'spec', 'tasks']),
-      targetId: z.string(),
-      reviewId: z.string(),
-      resolution: z.enum(['resolved', 'wont_fix']).default('resolved'),
-      resolvedBy: z.string().default('user'),
+      description: 'Mark a review as resolved or won\'t fix',
+      inputSchema: {
+        targetType: z.enum(['proposal', 'design', 'spec', 'tasks']),
+        targetId: z.string(),
+        reviewId: z.string(),
+        resolution: z.enum(['resolved', 'wont_fix']).default('resolved'),
+        resolvedBy: z.string().default('user'),
+      },
     },
     async ({ targetType, targetId, reviewId, resolution, resolvedBy }) => {
       const success = await reviewManager.resolveReview(
@@ -180,11 +188,13 @@ export function registerReviewTools(server: McpServer, reviewManager: ReviewMana
   /**
    * 获取评审统计
    */
-  server.tool(
+  server.registerTool(
     'openspec_get_review_summary',
-    'Get review summary for a change (all files)',
     {
-      changeId: z.string().describe('Change ID'),
+      description: 'Get review summary for a change (all files)',
+      inputSchema: {
+        changeId: z.string().describe('Change ID'),
+      },
     },
     async ({ changeId }) => {
       const { proposal, design, tasks, summary } = await reviewManager.getChangeReviews(changeId);
@@ -219,11 +229,13 @@ export function registerReviewTools(server: McpServer, reviewManager: ReviewMana
   /**
    * 检查审批准备状态
    */
-  server.tool(
+  server.registerTool(
     'openspec_check_approval_readiness',
-    'Check if a change is ready for approval',
     {
-      changeId: z.string(),
+      description: 'Check if a change is ready for approval',
+      inputSchema: {
+        changeId: z.string(),
+      },
     },
     async ({ changeId }) => {
       const blockers = await reviewManager.checkApprovalReadiness(changeId);

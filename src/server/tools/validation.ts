@@ -11,15 +11,17 @@ export function registerValidationTools(server: McpServer, cli: OpenSpecCli): vo
   /**
    * 验证单个变更
    */
-  server.tool(
+  server.registerTool(
     'openspec_validate_change',
-    'Validate a change proposal',
     {
-      changeId: z.string().describe('Change ID to validate'),
-      strict: z
-        .boolean()
-        .optional()
-        .describe('Use strict validation mode'),
+      description: 'Validate a change proposal',
+      inputSchema: {
+        changeId: z.string().describe('Change ID to validate'),
+        strict: z
+          .boolean()
+          .optional()
+          .describe('Use strict validation mode'),
+      },
     },
     async ({ changeId, strict }) => {
       const result = await cli.validateChange(changeId, { strict });
@@ -47,15 +49,17 @@ export function registerValidationTools(server: McpServer, cli: OpenSpecCli): vo
   /**
    * 验证单个规格
    */
-  server.tool(
+  server.registerTool(
     'openspec_validate_spec',
-    'Validate a specification',
     {
-      specId: z.string().describe('Spec ID to validate'),
-      strict: z
-        .boolean()
-        .optional()
-        .describe('Use strict validation mode'),
+      description: 'Validate a specification',
+      inputSchema: {
+        specId: z.string().describe('Spec ID to validate'),
+        strict: z
+          .boolean()
+          .optional()
+          .describe('Use strict validation mode'),
+      },
     },
     async ({ specId, strict }) => {
       const result = await cli.validateSpec(specId, { strict });
@@ -83,19 +87,21 @@ export function registerValidationTools(server: McpServer, cli: OpenSpecCli): vo
   /**
    * 批量验证
    */
-  server.tool(
+  server.registerTool(
     'openspec_validate_all',
-    'Validate all changes and/or specs',
     {
-      type: z
-        .enum(['changes', 'specs', 'all'])
-        .optional()
-        .default('all')
-        .describe('What to validate: changes, specs, or all'),
-      strict: z
-        .boolean()
-        .optional()
-        .describe('Use strict validation mode'),
+      description: 'Validate all changes and/or specs',
+      inputSchema: {
+        type: z
+          .enum(['changes', 'specs', 'all'])
+          .optional()
+          .default('all')
+          .describe('What to validate: changes, specs, or all'),
+        strict: z
+          .boolean()
+          .optional()
+          .describe('Use strict validation mode'),
+      },
     },
     async ({ type, strict }) => {
       const results: { item: string; valid: boolean; errorCount: number }[] = [];

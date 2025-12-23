@@ -15,11 +15,13 @@ export function registerCrossServiceTools(
   /**
    * 列出跨服务文档
    */
-  server.tool(
+  server.registerTool(
     'openspec_list_cross_service_docs',
-    'List cross-service documents for a change proposal. Returns documents defined in proposal.md frontmatter crossService config.',
     {
-      changeId: z.string().describe('Change ID to get cross-service documents for'),
+      description: 'List cross-service documents for a change proposal. Returns documents defined in proposal.md frontmatter crossService config.',
+      inputSchema: {
+        changeId: z.string().describe('Change ID to get cross-service documents for'),
+      },
     },
     async ({ changeId }) => {
       const info = await crossServiceManager.getCrossServiceInfo(changeId);
@@ -56,12 +58,14 @@ export function registerCrossServiceTools(
   /**
    * 读取单个跨服务文档
    */
-  server.tool(
+  server.registerTool(
     'openspec_read_cross_service_doc',
-    'Read a specific cross-service document content. Use openspec_list_cross_service_docs first to see available documents.',
     {
-      changeId: z.string().describe('Change ID'),
-      docName: z.string().describe('Document name (e.g., design.md, flows.md)'),
+      description: 'Read a specific cross-service document content. Use openspec_list_cross_service_docs first to see available documents.',
+      inputSchema: {
+        changeId: z.string().describe('Change ID'),
+        docName: z.string().describe('Document name (e.g., design.md, flows.md)'),
+      },
     },
     async ({ changeId, docName }) => {
       const doc = await crossServiceManager.readDocument(changeId, docName);

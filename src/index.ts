@@ -27,8 +27,17 @@ import { registerTemplatesTools } from './server/tools/templates.js';
 import { registerHooksTools } from './server/tools/hooks.js';
 import { registerGeneratorTools } from './server/tools/generator.js';
 import { registerCrossServiceTools } from './server/tools/cross-service.js';
+import { registerCritiqueTools } from './server/tools/critique.js';
+import { registerQATools } from './server/tools/qa.js';
+import { registerContextTools } from './server/tools/context.js';
+import { registerAIContextTools } from './server/tools/ai-context.js';
 import { CrossServiceManager } from './core/cross-service-manager.js';
+import { SpecCritic } from './core/spec-critic.js';
+import { QARunner } from './core/qa-runner.js';
+import { ContextAnalyzer } from './core/context-analyzer.js';
 import { VERSION } from './utils/version.js';
+import { PromptManager } from './core/prompt-manager.js';
+import { ListPromptsRequestSchema, GetPromptRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 
 /**
  * 创建并配置 MCP Server
@@ -62,6 +71,36 @@ function createMcpServer(cwd: string): McpServer {
   // 跨服务文档管理
   const crossServiceManager = new CrossServiceManager({ cwd });
   registerCrossServiceTools(server, crossServiceManager);
+
+  // 规格评审
+  const specCritic = new SpecCritic({ cwd });
+  registerCritiqueTools(server, specCritic);
+
+  // 质量检查
+  const qaRunner = new QARunner({ cwd });
+  registerQATools(server, qaRunner);
+
+  // 项目上下文分析
+  const contextAnalyzer = new ContextAnalyzer({ cwd });
+  registerContextTools(server, contextAnalyzer);
+  registerAIContextTools(server, contextAnalyzer);
+
+  // 注册 Prompts
+  const promptManager = new PromptManager({ cwd });
+  
+  // 尝试注册 Prompt Handlers (通过底层 server 实例)
+  const coreServer = (server as any).server;
+  if (coreServer && typeof coreServer.setRequestHandler === 'function') {
+    coreServer.setRequestHandler(ListPromptsRequestSchema, async () => {
+      return { prompts: promptManager.getPrompts() };
+    });
+    
+    coreServer.setRequestHandler(GetPromptRequestSchema, async (request: any) => {
+      const { name, arguments: args } = request.params;
+      const messages = await promptManager.getPrompt(name, args);
+      return { messages };
+    });
+  }
 
   return server;
 }

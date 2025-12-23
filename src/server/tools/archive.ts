@@ -11,15 +11,17 @@ export function registerArchiveTools(server: McpServer, cli: OpenSpecCli): void 
   /**
    * 归档变更
    */
-  server.tool(
+  server.registerTool(
     'openspec_archive_change',
-    'Archive a completed change proposal',
     {
-      changeId: z.string().describe('Change ID to archive'),
-      skipSpecs: z
-        .boolean()
-        .optional()
-        .describe('Skip merging delta specs into main specs'),
+      description: 'Archive a completed change proposal',
+      inputSchema: {
+        changeId: z.string().describe('Change ID to archive'),
+        skipSpecs: z
+          .boolean()
+          .optional()
+          .describe('Skip merging delta specs into main specs'),
+      },
     },
     async ({ changeId, skipSpecs }) => {
       const result = await cli.archiveChange(changeId, { skipSpecs });

@@ -14,11 +14,13 @@ export function registerApprovalTools(
   /**
    * 获取审批状态
    */
-  server.tool(
+  server.registerTool(
     'openspec_get_approval_status',
-    'Get approval status for a change',
     {
-      changeId: z.string().describe('Change ID'),
+      description: 'Get approval status for a change',
+      inputSchema: {
+        changeId: z.string().describe('Change ID'),
+      },
     },
     async ({ changeId }) => {
       const record = await approvalManager.getApprovalStatus(changeId);
@@ -75,16 +77,18 @@ export function registerApprovalTools(
   /**
    * 请求审批
    */
-  server.tool(
+  server.registerTool(
     'openspec_request_approval',
-    'Request approval for a change',
     {
-      changeId: z.string().describe('Change ID'),
-      requestedBy: z.string().describe('Who is requesting approval'),
-      reviewers: z
-        .array(z.string())
-        .optional()
-        .describe('List of reviewers'),
+      description: 'Request approval for a change',
+      inputSchema: {
+        changeId: z.string().describe('Change ID'),
+        requestedBy: z.string().describe('Who is requesting approval'),
+        reviewers: z
+          .array(z.string())
+          .optional()
+          .describe('List of reviewers'),
+      },
     },
     async ({ changeId, requestedBy, reviewers }) => {
       try {
@@ -122,13 +126,15 @@ export function registerApprovalTools(
   /**
    * 审批通过
    */
-  server.tool(
+  server.registerTool(
     'openspec_approve_change',
-    'Approve a change',
     {
-      changeId: z.string().describe('Change ID'),
-      approver: z.string().describe('Who is approving'),
-      comment: z.string().optional().describe('Optional approval comment'),
+      description: 'Approve a change',
+      inputSchema: {
+        changeId: z.string().describe('Change ID'),
+        approver: z.string().describe('Who is approving'),
+        comment: z.string().optional().describe('Optional approval comment'),
+      },
     },
     async ({ changeId, approver, comment }) => {
       try {
@@ -162,13 +168,15 @@ export function registerApprovalTools(
   /**
    * 审批拒绝
    */
-  server.tool(
+  server.registerTool(
     'openspec_reject_change',
-    'Reject a change',
     {
-      changeId: z.string().describe('Change ID'),
-      rejector: z.string().describe('Who is rejecting'),
-      reason: z.string().describe('Rejection reason'),
+      description: 'Reject a change',
+      inputSchema: {
+        changeId: z.string().describe('Change ID'),
+        rejector: z.string().describe('Who is rejecting'),
+        reason: z.string().describe('Rejection reason'),
+      },
     },
     async ({ changeId, rejector, reason }) => {
       try {
@@ -199,10 +207,12 @@ export function registerApprovalTools(
   /**
    * 列出待审批的变更
    */
-  server.tool(
+  server.registerTool(
     'openspec_list_pending_approvals',
-    'List all changes pending approval',
-    {},
+    {
+      description: 'List all changes pending approval',
+      inputSchema: {},
+    },
     async () => {
       const pending = await approvalManager.listPendingApprovals();
 

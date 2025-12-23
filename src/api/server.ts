@@ -20,6 +20,9 @@ import { registerSpecsRoutes } from './routes/specs.js';
 import { registerTasksRoutes } from './routes/tasks.js';
 import { registerApprovalsRoutes } from './routes/approvals.js';
 import { registerProjectRoutes } from './routes/project.js';
+import { registerKanbanRoutes } from './routes/kanban.js';
+import { registerContextRoutes } from './routes/context.js';
+import { registerQARoutes } from './routes/qa.js';
 import { CrossServiceManager } from '../core/cross-service-manager.js';
 import { VERSION } from '../utils/version.js';
 
@@ -38,6 +41,7 @@ export interface ApiContext {
   specParser: SpecParser;
   fileWatcher: FileWatcher;
   crossServiceManager: CrossServiceManager;
+  cwd: string;
   broadcast: (event: string, data: any, topic?: string) => void;
 }
 
@@ -153,6 +157,7 @@ export async function startApiServer(options: ApiServerOptions): Promise<Fastify
     specParser,
     fileWatcher,
     crossServiceManager,
+    cwd,
     broadcast,
   };
 
@@ -230,6 +235,9 @@ export async function startApiServer(options: ApiServerOptions): Promise<Fastify
       registerTasksRoutes(instance, ctx);
       registerApprovalsRoutes(instance, ctx);
       registerProjectRoutes(instance, ctx);
+      registerKanbanRoutes(instance, ctx);
+      registerContextRoutes(instance, ctx);
+      registerQARoutes(instance, ctx);
     },
     { prefix: '/api' }
   );

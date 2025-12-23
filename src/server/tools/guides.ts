@@ -11,10 +11,12 @@ export function registerGuidesTools(server: McpServer, cli: OpenSpecCli): void {
   /**
    * 获取 OpenSpec 使用指南 (AGENTS.md)
    */
-  server.tool(
+  server.registerTool(
     'openspec_get_instructions',
-    'Get OpenSpec usage instructions from AGENTS.md',
-    {},
+    {
+      description: 'Get OpenSpec usage instructions from AGENTS.md',
+      inputSchema: {},
+    },
     async () => {
       const content = await cli.getInstructions();
       return {
@@ -26,10 +28,12 @@ export function registerGuidesTools(server: McpServer, cli: OpenSpecCli): void {
   /**
    * 获取项目上下文 (project.md)
    */
-  server.tool(
+  server.registerTool(
     'openspec_get_project_context',
-    'Get project context from project.md',
-    {},
+    {
+      description: 'Get project context from project.md',
+      inputSchema: {},
+    },
     async () => {
       const content = await cli.getProjectContext();
       return {

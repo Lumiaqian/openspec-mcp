@@ -11,14 +11,16 @@ export function registerManagementTools(server: McpServer, cli: OpenSpecCli): vo
   /**
    * 列出所有变更
    */
-  server.tool(
+  server.registerTool(
     'openspec_list_changes',
-    'List all OpenSpec change proposals',
     {
-      includeArchived: z
-        .boolean()
-        .optional()
-        .describe('Include archived changes in the list'),
+      description: 'List all OpenSpec change proposals',
+      inputSchema: {
+        includeArchived: z
+          .boolean()
+          .optional()
+          .describe('Include archived changes in the list'),
+      },
     },
     async ({ includeArchived }) => {
       const changes = await cli.listChanges({ includeArchived });
@@ -36,10 +38,12 @@ export function registerManagementTools(server: McpServer, cli: OpenSpecCli): vo
   /**
    * 列出所有规格
    */
-  server.tool(
+  server.registerTool(
     'openspec_list_specs',
-    'List all OpenSpec specifications',
-    {},
+    {
+      description: 'List all OpenSpec specifications',
+      inputSchema: {},
+    },
     async () => {
       const specs = await cli.listSpecs();
       return {
@@ -56,15 +60,17 @@ export function registerManagementTools(server: McpServer, cli: OpenSpecCli): vo
   /**
    * 显示变更详情
    */
-  server.tool(
+  server.registerTool(
     'openspec_show_change',
-    'Show details of a specific change proposal',
     {
-      changeId: z.string().describe('Change ID (e.g., add-lite-effect-trial-binding)'),
-      deltasOnly: z.boolean().optional().describe('Show only delta specs'),
-      summary: z.boolean().optional().default(false).describe('Return summary only (smaller response)'),
-      maxContentLength: z.number().optional().default(2000).describe('Max characters for proposal/design content'),
-      maxTasks: z.number().optional().default(20).describe('Max number of tasks to return'),
+      description: 'Show details of a specific change proposal',
+      inputSchema: {
+        changeId: z.string().describe('Change ID (e.g., add-lite-effect-trial-binding)'),
+        deltasOnly: z.boolean().optional().describe('Show only delta specs'),
+        summary: z.boolean().optional().default(false).describe('Return summary only (smaller response)'),
+        maxContentLength: z.number().optional().default(2000).describe('Max characters for proposal/design content'),
+        maxTasks: z.number().optional().default(20).describe('Max number of tasks to return'),
+      },
     },
     async ({ changeId, deltasOnly, summary, maxContentLength, maxTasks }) => {
       const change = await cli.showChange(changeId, { deltasOnly });
@@ -137,11 +143,13 @@ export function registerManagementTools(server: McpServer, cli: OpenSpecCli): vo
   /**
    * 显示规格详情
    */
-  server.tool(
+  server.registerTool(
     'openspec_show_spec',
-    'Show details of a specific specification',
     {
-      specId: z.string().describe('Spec ID (e.g., offline-message)'),
+      description: 'Show details of a specific specification',
+      inputSchema: {
+        specId: z.string().describe('Spec ID (e.g., offline-message)'),
+      },
     },
     async ({ specId }) => {
       const spec = await cli.showSpec(specId);

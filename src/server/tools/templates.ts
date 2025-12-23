@@ -11,10 +11,12 @@ export function registerTemplatesTools(server: McpServer, templateManager: Templ
   /**
    * 列出所有可用模板
    */
-  server.tool(
+  server.registerTool(
     'openspec_list_templates',
-    'List all available change templates',
-    {},
+    {
+      description: 'List all available change templates',
+      inputSchema: {},
+    },
     async () => {
       const templates = await templateManager.listTemplates();
 
@@ -36,21 +38,23 @@ export function registerTemplatesTools(server: McpServer, templateManager: Templ
   /**
    * 从模板创建新的 Change
    */
-  server.tool(
+  server.registerTool(
     'openspec_create_change',
-    'Create a new change from a template',
     {
-      changeId: z
-        .string()
-        .describe('Change ID (kebab-case, e.g., add-user-auth)'),
-      template: z
-        .enum(['feature', 'bugfix', 'refactor'])
-        .default('feature')
-        .describe('Template to use'),
-      title: z
-        .string()
-        .optional()
-        .describe('Change title (defaults to changeId)'),
+      description: 'Create a new change from a template',
+      inputSchema: {
+        changeId: z
+          .string()
+          .describe('Change ID (kebab-case, e.g., add-user-auth)'),
+        template: z
+          .enum(['feature', 'bugfix', 'refactor'])
+          .default('feature')
+          .describe('Template to use'),
+        title: z
+          .string()
+          .optional()
+          .describe('Change title (defaults to changeId)'),
+      },
     },
     async ({ changeId, template, title }) => {
       const result = await templateManager.createChange(changeId, { template, title });
@@ -81,13 +85,15 @@ export function registerTemplatesTools(server: McpServer, templateManager: Templ
   /**
    * 预览模板内容
    */
-  server.tool(
+  server.registerTool(
     'openspec_preview_template',
-    'Preview the content of a template',
     {
-      template: z
-        .enum(['feature', 'bugfix', 'refactor'])
-        .describe('Template name'),
+      description: 'Preview the content of a template',
+      inputSchema: {
+        template: z
+          .enum(['feature', 'bugfix', 'refactor'])
+          .describe('Template name'),
+      },
     },
     async ({ template: templateName }) => {
       const template = await templateManager.getTemplate(templateName);

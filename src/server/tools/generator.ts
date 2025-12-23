@@ -14,13 +14,15 @@ export function registerGeneratorTools(
   /**
    * 准备生成 proposal（返回 prompt 供 AI 使用）
    */
-  server.tool(
+  server.registerTool(
     'openspec_prepare_proposal',
-    'Prepare context and prompt for generating a proposal from a requirement',
     {
-      requirement: z
-        .string()
-        .describe('Description of the feature or change requirement'),
+      description: 'Prepare context and prompt for generating a proposal from a requirement',
+      inputSchema: {
+        requirement: z
+          .string()
+          .describe('Description of the feature or change requirement'),
+      },
     },
     async ({ requirement }) => {
       const result = await proposalGenerator.prepareGeneration(requirement);
@@ -42,15 +44,17 @@ export function registerGeneratorTools(
   /**
    * 保存生成的 proposal
    */
-  server.tool(
+  server.registerTool(
     'openspec_save_proposal',
-    'Save a generated proposal and tasks to a new change',
     {
-      changeId: z
-        .string()
-        .describe('Change ID (kebab-case, e.g., add-user-auth)'),
-      proposal: z.string().describe('Content of proposal.md'),
-      tasks: z.string().describe('Content of tasks.md'),
+      description: 'Save a generated proposal and tasks to a new change',
+      inputSchema: {
+        changeId: z
+          .string()
+          .describe('Change ID (kebab-case, e.g., add-user-auth)'),
+        proposal: z.string().describe('Content of proposal.md'),
+        tasks: z.string().describe('Content of tasks.md'),
+      },
     },
     async ({ changeId, proposal, tasks }) => {
       const result = await proposalGenerator.saveDraft(changeId, proposal, tasks);
@@ -81,17 +85,19 @@ export function registerGeneratorTools(
   /**
    * 一站式生成并保存（返回示例，需 AI 填充内容）
    */
-  server.tool(
+  server.registerTool(
     'openspec_generate_proposal',
-    'Generate a proposal from requirement description (returns template for AI to complete)',
     {
-      requirement: z
-        .string()
-        .describe('Description of the feature or change requirement'),
-      changeId: z
-        .string()
-        .optional()
-        .describe('Optional custom change ID'),
+      description: 'Generate a proposal from requirement description (returns template for AI to complete)',
+      inputSchema: {
+        requirement: z
+          .string()
+          .describe('Description of the feature or change requirement'),
+        changeId: z
+          .string()
+          .optional()
+          .describe('Optional custom change ID'),
+      },
     },
     async ({ requirement, changeId }) => {
       const preparation = await proposalGenerator.prepareGeneration(requirement);

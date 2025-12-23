@@ -11,13 +11,15 @@ export function registerHooksTools(server: McpServer, hooksManager: HooksManager
   /**
    * 安装 Git hooks
    */
-  server.tool(
+  server.registerTool(
     'openspec_setup_hooks',
-    'Install or uninstall OpenSpec Git hooks',
     {
-      action: z
-        .enum(['install', 'uninstall', 'status'])
-        .describe('Action to perform'),
+      description: 'Install or uninstall OpenSpec Git hooks',
+      inputSchema: {
+        action: z
+          .enum(['install', 'uninstall', 'status'])
+          .describe('Action to perform'),
+      },
     },
     async ({ action }) => {
       if (action === 'status') {
