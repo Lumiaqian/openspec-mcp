@@ -67,6 +67,25 @@ describe('ApprovalManager', () => {
         'Must be pending_approval'
       );
     });
+
+    it('should wait for all reviewers to approve', async () => {
+      // Request approval with 2 reviewers
+      await manager.requestApproval('test-change', 'user1', ['reviewer1', 'reviewer2']);
+      
+      // First reviewer approves
+      let record = await manager.approve('test-change', 'reviewer1', 'LGTM');
+
+      // Should still be pending_approval
+      expect(record.status).toBe('pending_approval');
+      expect(record.approvals).toHaveLength(1);
+
+      // Second reviewer approves
+      record = await manager.approve('test-change', 'reviewer2', 'Also LGTM');
+      
+      // Now it should be approved
+      expect(record.status).toBe('approved');
+      expect(record.approvals).toHaveLength(2);
+    });
   });
 
   describe('reject', () => {

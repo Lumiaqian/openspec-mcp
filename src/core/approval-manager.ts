@@ -134,8 +134,17 @@ export class ApprovalManager {
       comment,
     });
 
+    // 检查是否所有评审人都已批准
+    let allApproved = true;
+    if (record.reviewers && record.reviewers.length > 0) {
+      const approvers = new Set(record.approvals.map(a => a.approver));
+      allApproved = record.reviewers.every(reviewer => approvers.has(reviewer));
+    }
+
     // 更新状态
-    record.status = 'approved';
+    if (allApproved) {
+      record.status = 'approved';
+    }
 
     // 添加历史记录
     record.history.push({

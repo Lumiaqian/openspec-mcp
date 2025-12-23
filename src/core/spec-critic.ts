@@ -491,7 +491,12 @@ export class SpecCritic {
         severity: 'critical',
         title: '涉及敏感数据',
         description: '涉及敏感数据的变更需要特别说明安全措施',
-        check: (content) => {
+        check: (content, sections) => {
+          // 如果已有安全章节，则认为已考虑(或至少不直接判为 critical)
+          if (sections.has('security') || sections.has('safety') || sections.has('安全')) {
+            return { matched: false };
+          }
+
           const sensitivePatterns = [
             /password/i, /secret/i, /token/i, /密码/, /密钥/,
             /credit.?card/i, /信用卡/, /身份证/, /ssn/i,
@@ -501,8 +506,8 @@ export class SpecCritic {
             if (pattern.test(content)) {
               return { 
                 matched: true, 
-                details: '文档涉及敏感数据，请确保有适当的安全措施',
-                suggestion: '添加数据保护和加密相关说明' 
+                details: '文档涉及敏感数据且未发现安全章节，请确保有适当的安全措施',
+                suggestion: '添加 "Security" 或 "安全" 章节说明数据保护措施' 
               };
             }
           }
