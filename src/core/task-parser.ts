@@ -44,16 +44,32 @@ export class TaskParser {
       }
 
       // 检测任务项 - 支持多种格式
-      // 格式1: - [x] **1.1** 任务描述
-      // 格式2: - [ ] **1.1** 任务描述
-      // 格式3: - [-] **1.1** 任务描述
-      const taskMatch = line.match(
+      // 格式1: - [x] **1.1** 任务描述 (有 ** 包围)
+      // 格式2: - [x] 1.1 任务描述 (无 ** 包围)
+      const taskMatchWithStars = line.match(
         /^(\s*)-\s+\[([ x-])\]\s+\*\*(\d+(?:\.\d+)*)\*\*\s+(.+)/
       );
 
-      if (taskMatch) {
-        const [, indent, statusChar, id, title] = taskMatch;
-        const depth = Math.floor(indent.length / 2); // 计算嵌套层级
+      if (taskMatchWithStars) {
+        const [, indent, statusChar, id, title] = taskMatchWithStars;
+
+        tasks.push({
+          id,
+          section: currentSection,
+          title: title.trim(),
+          status: this.parseStatus(statusChar),
+          line: lineNum,
+        });
+        continue;
+      }
+
+      // 格式2: - [x] 1.1 任务描述 (无 ** 包围，但有数字 ID)
+      const taskMatchNoStars = line.match(
+        /^(\s*)-\s+\[([ x-])\]\s+(\d+(?:\.\d+)*)\s+(.+)/
+      );
+
+      if (taskMatchNoStars) {
+        const [, indent, statusChar, id, title] = taskMatchNoStars;
 
         tasks.push({
           id,
@@ -145,13 +161,24 @@ export class TaskParser {
     let found = false;
 
     for (let i = 0; i < lines.length; i++) {
-      // 匹配带 ID 的任务
-      const taskMatch = lines[i].match(
+      // 匹配带 ** 的任务 ID
+      const taskMatchWithStars = lines[i].match(
         /^(\s*-\s+\[)([ x-])(\]\s+\*\*)(\d+(?:\.\d+)*)(\*\*.+)/
       );
 
-      if (taskMatch && taskMatch[4] === taskId) {
-        lines[i] = `${taskMatch[1]}${statusChar}${taskMatch[3]}${taskMatch[4]}${taskMatch[5]}`;
+      if (taskMatchWithStars && taskMatchWithStars[4] === taskId) {
+        lines[i] = `${taskMatchWithStars[1]}${statusChar}${taskMatchWithStars[3]}${taskMatchWithStars[4]}${taskMatchWithStars[5]}`;
+        found = true;
+        break;
+      }
+
+      // 匹配无 ** 的任务 ID
+      const taskMatchNoStars = lines[i].match(
+        /^(\s*-\s+\[)([ x-])(\]\s+)(\d+(?:\.\d+)*)(\s+.+)/
+      );
+
+      if (taskMatchNoStars && taskMatchNoStars[4] === taskId) {
+        lines[i] = `${taskMatchNoStars[1]}${statusChar}${taskMatchNoStars[3]}${taskMatchNoStars[4]}${taskMatchNoStars[5]}`;
         found = true;
         break;
       }
@@ -188,12 +215,23 @@ export class TaskParser {
       const statusChar = this.getStatusChar(status);
 
       for (let i = 0; i < lines.length; i++) {
-        const taskMatch = lines[i].match(
+        // 匹配带 ** 的任务 ID
+        const taskMatchWithStars = lines[i].match(
           /^(\s*-\s+\[)([ x-])(\]\s+\*\*)(\d+(?:\.\d+)*)(\*\*.+)/
         );
 
-        if (taskMatch && taskMatch[4] === taskId) {
-          lines[i] = `${taskMatch[1]}${statusChar}${taskMatch[3]}${taskMatch[4]}${taskMatch[5]}`;
+        if (taskMatchWithStars && taskMatchWithStars[4] === taskId) {
+          lines[i] = `${taskMatchWithStars[1]}${statusChar}${taskMatchWithStars[3]}${taskMatchWithStars[4]}${taskMatchWithStars[5]}`;
+          break;
+        }
+
+        // 匹配无 ** 的任务 ID
+        const taskMatchNoStars = lines[i].match(
+          /^(\s*-\s+\[)([ x-])(\]\s+)(\d+(?:\.\d+)*)(\s+.+)/
+        );
+
+        if (taskMatchNoStars && taskMatchNoStars[4] === taskId) {
+          lines[i] = `${taskMatchNoStars[1]}${statusChar}${taskMatchNoStars[3]}${taskMatchNoStars[4]}${taskMatchNoStars[5]}`;
           break;
         }
 
