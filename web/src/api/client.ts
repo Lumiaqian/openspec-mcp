@@ -79,6 +79,12 @@ export const changesApi = {
     fetchJson<{ name: string; path: string; content: string; isSnapshot?: boolean }>(
       `/changes/${id}/cross-service/${encodeURIComponent(docName)}`
     ),
+
+  // Specs
+  getSpecs: (id: string) =>
+    fetchJson<{ specs: Array<{ id: string; title: string; content: string }> }>(
+      `/changes/${id}/specs`
+    ),
 };
 
 // Specs API
@@ -176,3 +182,162 @@ export const projectApi = {
       '/project'
     ),
 };
+
+// Kanban API
+export interface KanbanCard {
+  id: string;
+  name: string;
+  description?: string;
+  progress: number;
+  column: string;
+  labels: string[];
+  priority?: 'high' | 'medium' | 'low';
+  updatedAt: string;
+  createdAt: string;
+}
+
+export interface KanbanColumn {
+  id: string;
+  title: string;
+  color: string;
+  cards: KanbanCard[];
+}
+
+export interface KanbanData {
+  columns: KanbanColumn[];
+  summary: {
+    total: number;
+    byColumn: Record<string, number>;
+  };
+}
+
+export const kanbanApi = {
+  get: () => fetchJson<KanbanData>('/kanban'),
+  
+  getSummary: () => fetchJson<{ total: number; columns: Record<string, number> }>('/kanban/summary'),
+  
+  moveCard: (id: string, toColumn: string, note?: string) =>
+    fetchJson<{ success: boolean; changeId: string; newColumn: string }>(`/kanban/${id}/move`, {
+      method: 'PUT',
+      body: JSON.stringify({ toColumn, note }),
+    }),
+};
+
+// Context API (通过 MCP 调用)
+export interface ProjectContext {
+  projectName: string;
+  projectRoot: string;
+  analyzedAt: string;
+  stack: {
+    languages: Array<{ name: string; percentage: number; fileCount: number; lineCount: number }>;
+    frameworks: string[];
+    packageManager: string;
+    buildTools: string[];
+    testFramework?: string;
+  };
+  structure: {
+    rootFiles: string[];
+    mainDirectories: Array<{ name: string; purpose: string; fileCount: number; path: string }>;
+    entryPoints: string[];
+  };
+  patterns: {
+    architecture: string;
+    codeStyle: string[];
+    conventions: string[];
+  };
+  stats: {
+    totalFiles: number;
+    totalLines: number;
+    byLanguage: Record<string, number>;
+  };
+}
+
+export const contextApi = {
+  // 注意：这些通过 REST 包装 MCP 工具，后端需要添加新路由
+  analyze: (refresh = false) =>
+    fetchJson<ProjectContext>(`/context/analyze${refresh ? '?refresh=true' : ''}`),
+  
+  getSummary: () =>
+    fetchJson<{ summary: string } | null>('/context/summary'),
+};
+
+// QA Types
+export interface QACheckResult {
+  type: 'syntax' | 'typecheck' | 'lint' | 'test' | 'build';
+  status: 'passed' | 'failed' | 'skipped' | 'timeout';
+  output?: string;
+  errors?: string[];
+  duration: number;
+}
+
+export interface QAStatus {
+  currentCheck?: string;
+  isRunning: boolean;
+  startTime?: string;
+  progress?: {
+    total: number;
+    completed: number;
+    current: number;
+  };
+}
+
+export interface QAResult {
+  id: string;
+  changeName: string;
+  status: QAStatus;
+  iteration: number;
+  maxIterations: number;
+  checks: QACheckResult[];
+  startedAt: string;
+  completedAt?: string;
+  summary: {
+    total: number;
+    passed: number;
+    failed: number;
+    skipped: number;
+  };
+  total: number;
+  passed: number;
+  failed: number;
+  skipped: number;
+}
+
+export interface QASummary {
+  total: number;
+  passed: number;
+  failed: number;
+  running: number;
+  changes: Array<{
+    name: string;
+    status: QAStatus;
+    lastRun?: string;
+  }>;
+}
+
+export const qaApi = {
+  // Get QA status for a specific change
+  getStatus: (changeName: string) =>
+    fetchJson<{ status: QAResult | null }>(`/qa/status/${changeName}`),
+
+  // Get all running QA status summary
+  getSummary: () =>
+    fetchJson<QASummary>('/qa/summary'),
+
+  // Get QA history for a specific change
+  getHistory: (changeName: string, limit = 10) =>
+    fetchJson<{ history: QAResult[] }>(`/qa/history/${changeName}?limit=${limit}`),
+
+  // Run QA for a specific change
+  run: (changeName: string, checks?: string[]) =>
+    fetchJson<{ message: string; changeName: string; checks: string[] }>('/qa/run/' + changeName, {
+      method: 'POST',
+      body: JSON.stringify({ checks }),
+    }),
+
+  // Stop QA for a specific change
+  stop: (changeName: string) =>
+    fetchJson<{ message: string; changeName: string }>('/qa/stop/' + changeName, {
+      method: 'POST',
+    }),
+};
+

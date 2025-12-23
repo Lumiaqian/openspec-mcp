@@ -47,8 +47,9 @@ export default function ChangeDetail() {
   const [tasks, setTasks] = useState<any[]>([]);
   const [progress, setProgress] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'proposal' | 'tasks' | 'design' | 'cross-service'>('proposal');
+  const [activeTab, setActiveTab] = useState<'proposal' | 'tasks' | 'design' | 'specs' | 'cross-service'>('proposal');
   const [showResolved, setShowResolved] = useState(false);
+  const [specs, setSpecs] = useState<Array<{ id: string; title: string; content: string }>>([]);
   
   // Reviews state
   const [reviews, setReviews] = useState<{
@@ -64,16 +65,18 @@ export default function ChangeDetail() {
       if (!id) return;
 
       try {
-        const [changeRes, tasksRes, reviewsRes] = await Promise.all([
+        const [changeRes, tasksRes, reviewsRes, specsRes] = await Promise.all([
           changesApi.get(id),
           tasksApi.get(id),
           changesApi.getReviews(id),
+          changesApi.getSpecs(id),
         ]);
 
         setChange(changeRes.change);
         setTasks(tasksRes.tasks);
         setProgress(tasksRes.progress);
         setReviews(reviewsRes);
+        setSpecs(specsRes.specs);
       } catch (error) {
         console.error('Failed to fetch change:', error);
       } finally {
@@ -198,8 +201,8 @@ export default function ChangeDetail() {
     );
   }
 
-  // Get reviews for current tab (cross-service tab has no reviews)
-  const reviewableTab = activeTab === 'cross-service' ? null : activeTab;
+  // Get reviews for current tab (cross-service and specs tabs have no reviews)
+  const reviewableTab = (activeTab === 'cross-service' || activeTab === 'specs') ? null : activeTab;
   const tabReviewList = reviewableTab ? reviews[reviewableTab] : [];
   const openReviews = tabReviewList.filter((r: Review) => r.status === 'open');
   const resolvedReviews = tabReviewList.filter((r: Review) => r.status !== 'open');
@@ -289,6 +292,22 @@ export default function ChangeDetail() {
                   </button>
                 );
               })}
+              {/* Specs Tab */}
+              <button
+                onClick={() => setActiveTab('specs')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center ${
+                  activeTab === 'specs'
+                    ? 'border-green-500 text-green-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                📋 Specs
+                {specs.length > 0 && (
+                  <span className="ml-2 bg-green-100 text-green-600 px-2 py-0.5 rounded-full text-xs">
+                    {specs.length}
+                  </span>
+                )}
+              </button>
               {/* Cross-Service Tab */}
               <button
                 onClick={() => setActiveTab('cross-service')}
@@ -381,6 +400,30 @@ export default function ChangeDetail() {
                   </ReactMarkdown>
                 ) : (
                   <p className="text-gray-500">No design document.</p>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'specs' && (
+              <div className="p-6">
+                {specs.length === 0 ? (
+                  <p className="text-gray-500">No specs defined for this change.</p>
+                ) : (
+                  <div className="space-y-6">
+                    {specs.map((spec) => (
+                      <div key={spec.id} className="border rounded-lg overflow-hidden">
+                        <div className="bg-green-50 px-4 py-2 border-b flex items-center justify-between">
+                          <h4 className="font-semibold text-green-800">{spec.title}</h4>
+                          <span className="text-xs text-green-600 font-mono">{spec.id}</span>
+                        </div>
+                        <div className="p-4 prose prose-sm max-w-none">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {spec.content}
+                          </ReactMarkdown>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
             )}

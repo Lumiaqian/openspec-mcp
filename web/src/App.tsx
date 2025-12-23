@@ -7,6 +7,9 @@ import ChangeList from './components/ChangeList';
 import ChangeDetail from './components/ChangeDetail';
 import SpecList from './components/SpecList';
 import ApprovalQueue from './components/ApprovalQueue';
+import Kanban from './components/Kanban';
+import ProjectContext from './components/ProjectContext';
+import QADashboard from './components/QADashboard';
 
 function App() {
   const location = useLocation();
@@ -32,6 +35,9 @@ function App() {
 
   const navItems = [
     { path: '/', label: 'Dashboard' },
+    { path: '/kanban', label: 'Kanban' },
+    { path: '/qa', label: 'QA' },
+    { path: '/context', label: 'Context' },
     { path: '/changes', label: 'Changes' },
     { path: '/specs', label: 'Specs' },
     { path: '/approvals', label: 'Approvals' },
@@ -83,6 +89,9 @@ function App() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Routes>
           <Route path="/" element={<Dashboard />} />
+          <Route path="/kanban" element={<Kanban />} />
+          <Route path="/qa" element={<QADashboard />} />
+          <Route path="/context" element={<ProjectContext />} />
           <Route path="/changes" element={<ChangeList />} />
           <Route path="/changes/:id" element={<ChangeDetail />} />
           <Route path="/specs" element={<SpecList />} />
