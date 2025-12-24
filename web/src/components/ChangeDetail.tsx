@@ -130,6 +130,13 @@ export default function ChangeDetail() {
       }
     }
     
+    // Handle revision:added event
+    if (event === 'revision:added' && data.changeId === id) {
+      if (data.revision) {
+        setRevisions(prev => [...prev, data.revision]);
+      }
+    }
+    
     // Handle reviews:updated event (from file watcher - MCP tool changes)
     if (event === 'reviews:updated' && data.changeId === id) {
       changesApi.getReviews(id).then(reviewsRes => {
@@ -162,6 +169,15 @@ export default function ChangeDetail() {
         setChange(changeRes.change);
       }).catch(err => {
         console.error('Failed to refresh change:', err);
+      });
+    }
+    
+    // Handle revisions:updated event (from file watcher - revisions.json changes)
+    if (event === 'revisions:updated' && data.changeId === id) {
+      changesApi.getRevisions(id).then(revisionsRes => {
+        setRevisions(revisionsRes.revisions || []);
+      }).catch(err => {
+        console.error('Failed to refresh revisions:', err);
       });
     }
   }, [lastMessage, id]);
@@ -447,10 +463,35 @@ export default function ChangeDetail() {
           </div>
         </div>
 
-        {/* Reviews sidebar - 1 column */}
-        <div className="lg:col-span-1 h-[calc(100vh-200px)]">
-          <div className="bg-white rounded-lg shadow h-full flex flex-col">
-            <div className="p-4 border-b border-gray-200">
+        {/* Sidebar - 1 column */}
+        <div className="lg:col-span-1 space-y-4">
+          {/* Revisions section - at top */}
+          {revisions.length > 0 && (
+            <div className="bg-white rounded-lg shadow">
+              <div className="p-4 border-b border-gray-200">
+                <h3 className="font-semibold text-gray-700">
+                  📝 Revisions <span className="text-xs text-gray-400">({revisions.length})</span>
+                </h3>
+              </div>
+              <div className="p-4 space-y-2 max-h-48 overflow-y-auto">
+                {revisions.map((rev) => (
+                  <div key={rev.id} className="p-2 bg-yellow-50 rounded border border-yellow-200 text-sm">
+                    <div className="font-medium text-gray-700">{rev.description}</div>
+                    {rev.reason && (
+                      <div className="text-xs text-gray-500 mt-1">Reason: {rev.reason}</div>
+                    )}
+                    <div className="text-xs text-gray-400 mt-1">
+                      {new Date(rev.createdAt).toLocaleDateString()}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Reviews section */}
+          <div className="bg-white rounded-lg shadow" style={{ maxHeight: revisions.length > 0 ? 'calc(100vh - 400px)' : 'calc(100vh - 200px)' }}>
+            <div className="p-4 border-b border-gray-200 flex-shrink-0">
               <h3 className="font-semibold text-gray-700 mb-2">
                 Reviews <span className="text-xs text-gray-400">for {activeTab}</span>
               </h3>
@@ -541,30 +582,6 @@ export default function ChangeDetail() {
               )}
             </div>
           </div>
-
-          {/* Revisions section */}
-          {revisions.length > 0 && (
-            <div className="bg-white rounded-lg shadow mt-4">
-              <div className="p-4 border-b border-gray-200">
-                <h3 className="font-semibold text-gray-700">
-                  📝 Revisions <span className="text-xs text-gray-400">({revisions.length})</span>
-                </h3>
-              </div>
-              <div className="p-4 space-y-2 max-h-48 overflow-y-auto">
-                {revisions.map((rev) => (
-                  <div key={rev.id} className="p-2 bg-yellow-50 rounded border border-yellow-200 text-sm">
-                    <div className="font-medium text-gray-700">{rev.description}</div>
-                    {rev.reason && (
-                      <div className="text-xs text-gray-500 mt-1">Reason: {rev.reason}</div>
-                    )}
-                    <div className="text-xs text-gray-400 mt-1">
-                      {new Date(rev.createdAt).toLocaleDateString()}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>

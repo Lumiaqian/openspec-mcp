@@ -333,6 +333,18 @@ export async function startApiServer(options: ApiServerOptions): Promise<Fastify
         }
       }
 
+      // revisions.json 变化
+      if (type === 'revisions') {
+        const match = fileInfo.path?.match(/changes\/([^/]+)\/revisions\.json$/);
+        const changeId = match ? match[1] : null;
+        if (changeId) {
+          broadcast('revisions:updated', { 
+            changeId,
+            timestamp: new Date().toISOString()
+          }, 'revisions');
+        }
+      }
+
       // 跨服务文件变化 - 广播 cross-service:updated 事件
       if (type?.startsWith('cross-service')) {
         const fileName = fileInfo.path?.split('/').pop() || '';

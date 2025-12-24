@@ -153,6 +153,7 @@ export class FileWatcher extends EventEmitter {
       if (relativePath.endsWith('proposal.md')) return 'proposal';
       if (relativePath.endsWith('design.md')) return 'design';
       if (relativePath.endsWith('tasks.md')) return 'tasks';
+      if (relativePath.endsWith('revisions.json')) return 'revisions';
       if (relativePath.includes('/specs/')) return 'delta';
       return 'change';
     }
