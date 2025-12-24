@@ -85,6 +85,18 @@ export const changesApi = {
     fetchJson<{ specs: Array<{ id: string; title: string; content: string }> }>(
       `/changes/${id}/specs`
     ),
+
+  // Revisions
+  getRevisions: (id: string) =>
+    fetchJson<{ revisions: Array<{ id: string; description: string; reason?: string; author: string; createdAt: string }> }>(
+      `/changes/${id}/revisions`
+    ),
+
+  addRevision: (id: string, description: string, reason?: string) =>
+    fetchJson<{ revision: any }>(`/changes/${id}/revisions`, {
+      method: 'POST',
+      body: JSON.stringify({ description, reason }),
+    }),
 };
 
 // Specs API

@@ -27,6 +27,14 @@ interface ReviewSummary {
   hasBlockingIssues: boolean;
 }
 
+interface Revision {
+  id: string;
+  description: string;
+  reason?: string;
+  author: string;
+  createdAt: string;
+}
+
 const typeIcons: Record<Review['type'], string> = {
   comment: '💬',
   suggestion: '💡',
@@ -59,17 +67,21 @@ export default function ChangeDetail() {
     summary: ReviewSummary | null;
   }>({ proposal: [], design: [], tasks: [], summary: null });
 
+  // Revisions state
+  const [revisions, setRevisions] = useState<Revision[]>([]);
+
   // Fetch data on mount
   useEffect(() => {
     async function fetchData() {
       if (!id) return;
 
       try {
-        const [changeRes, tasksRes, reviewsRes, specsRes] = await Promise.all([
+        const [changeRes, tasksRes, reviewsRes, specsRes, revisionsRes] = await Promise.all([
           changesApi.get(id),
           tasksApi.get(id),
           changesApi.getReviews(id),
           changesApi.getSpecs(id),
+          changesApi.getRevisions(id),
         ]);
 
         setChange(changeRes.change);
@@ -77,6 +89,7 @@ export default function ChangeDetail() {
         setProgress(tasksRes.progress);
         setReviews(reviewsRes);
         setSpecs(specsRes.specs);
+        setRevisions(revisionsRes.revisions || []);
       } catch (error) {
         console.error('Failed to fetch change:', error);
       } finally {
@@ -528,6 +541,30 @@ export default function ChangeDetail() {
               )}
             </div>
           </div>
+
+          {/* Revisions section */}
+          {revisions.length > 0 && (
+            <div className="bg-white rounded-lg shadow mt-4">
+              <div className="p-4 border-b border-gray-200">
+                <h3 className="font-semibold text-gray-700">
+                  📝 Revisions <span className="text-xs text-gray-400">({revisions.length})</span>
+                </h3>
+              </div>
+              <div className="p-4 space-y-2 max-h-48 overflow-y-auto">
+                {revisions.map((rev) => (
+                  <div key={rev.id} className="p-2 bg-yellow-50 rounded border border-yellow-200 text-sm">
+                    <div className="font-medium text-gray-700">{rev.description}</div>
+                    {rev.reason && (
+                      <div className="text-xs text-gray-500 mt-1">Reason: {rev.reason}</div>
+                    )}
+                    <div className="text-xs text-gray-400 mt-1">
+                      {new Date(rev.createdAt).toLocaleDateString()}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

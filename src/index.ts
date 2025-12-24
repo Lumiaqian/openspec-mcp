@@ -30,9 +30,11 @@ import { registerCrossServiceTools } from './server/tools/cross-service.js';
 import { registerCritiqueTools } from './server/tools/critique.js';
 import { registerContextTools } from './server/tools/context.js';
 import { registerAIContextTools } from './server/tools/ai-context.js';
+import { registerRevisionTools } from './server/tools/revision.js';
 import { CrossServiceManager } from './core/cross-service-manager.js';
 import { SpecCritic } from './core/spec-critic.js';
 import { ContextAnalyzer } from './core/context-analyzer.js';
+import { RevisionManager } from './core/revision-manager.js';
 import { VERSION } from './utils/version.js';
 
 /**
@@ -51,12 +53,13 @@ function createMcpServer(cwd: string): McpServer {
   const templateManager = new TemplateManager({ cwd });
   const hooksManager = new HooksManager({ cwd });
   const proposalGenerator = new ProposalGenerator({ cwd });
+  const revisionManager = new RevisionManager({ cwd });
 
   // 注册所有工具
   registerGuidesTools(server, cli);
   registerManagementTools(server, cli);
   registerValidationTools(server, cli);
-  registerArchiveTools(server, cli);
+  registerArchiveTools(server, cli, revisionManager);
   registerTasksTools(server, cli);
   registerApprovalTools(server, approvalManager);
   registerReviewTools(server, reviewManager);
@@ -76,6 +79,9 @@ function createMcpServer(cwd: string): McpServer {
   const contextAnalyzer = new ContextAnalyzer({ cwd });
   registerContextTools(server, contextAnalyzer);
   registerAIContextTools(server, contextAnalyzer);
+
+  // 设计变更记录
+  registerRevisionTools(server, revisionManager);
 
   return server;
 }

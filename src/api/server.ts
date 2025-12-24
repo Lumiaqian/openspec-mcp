@@ -23,6 +23,7 @@ import { registerProjectRoutes } from './routes/project.js';
 import { registerKanbanRoutes } from './routes/kanban.js';
 import { registerContextRoutes } from './routes/context.js';
 import { CrossServiceManager } from '../core/cross-service-manager.js';
+import { RevisionManager } from '../core/revision-manager.js';
 import { VERSION } from '../utils/version.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -37,6 +38,7 @@ export interface ApiContext {
   cli: OpenSpecCli;
   approvalManager: ApprovalManager;
   reviewManager: ReviewManager;
+  revisionManager: RevisionManager;
   specParser: SpecParser;
   fileWatcher: FileWatcher;
   crossServiceManager: CrossServiceManager;
@@ -177,10 +179,12 @@ export async function startApiServer(options: ApiServerOptions): Promise<Fastify
   };
 
   // API 上下文
+  const revisionManager = new RevisionManager({ cwd });
   const ctx: ApiContext = {
     cli,
     approvalManager,
     reviewManager,
+    revisionManager,
     specParser,
     fileWatcher,
     crossServiceManager,

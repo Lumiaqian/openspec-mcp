@@ -214,4 +214,41 @@ export function registerChangesRoutes(fastify: FastifyInstance, ctx: ApiContext)
 
     return doc;
   });
+
+  /**
+   * GET /api/changes/:id/revisions - 获取设计变更记录
+   */
+  fastify.get('/changes/:id/revisions', async (request) => {
+    const { id } = request.params as { id: string };
+    const { revisionManager } = ctx;
+
+    const revisions = await revisionManager.listRevisions(id);
+    return { revisions };
+  });
+
+  /**
+   * POST /api/changes/:id/revisions - 添加设计变更记录
+   */
+  fastify.post('/changes/:id/revisions', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const { description, reason } = request.body as {
+      description: string;
+      reason?: string;
+    };
+
+    if (!description) {
+      return reply.status(400).send({ error: 'description is required' });
+    }
+
+    try {
+      const { revisionManager } = ctx;
+      const revision = await revisionManager.recordRevision(id, description, { reason });
+
+      ctx.broadcast('revision:added', { changeId: id, revision }, 'revisions');
+      return { revision };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to add revision';
+      return reply.status(400).send({ error: message });
+    }
+  });
 }
