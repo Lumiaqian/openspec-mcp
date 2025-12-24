@@ -12,36 +12,6 @@ export function registerGeneratorTools(
   proposalGenerator: ProposalGenerator
 ): void {
   /**
-   * 准备生成 proposal（返回 prompt 供 AI 使用）
-   */
-  server.registerTool(
-    'openspec_prepare_proposal',
-    {
-      description: 'Prepare context and prompt for generating a proposal from a requirement',
-      inputSchema: {
-        requirement: z
-          .string()
-          .describe('Description of the feature or change requirement'),
-      },
-    },
-    async ({ requirement }) => {
-      const result = await proposalGenerator.prepareGeneration(requirement);
-
-      let text = `# Proposal Generation Prepared\n\n`;
-      text += `**Suggested Change ID**: \`${result.suggestedId}\`\n\n`;
-      text += `## Context Gathered\n\n`;
-      text += result.context || '_No project context found_';
-      text += `\n\n## Generation Prompt\n\n`;
-      text += `Use the following prompt to generate the proposal:\n\n`;
-      text += '```\n' + result.prompt + '\n```\n';
-
-      return {
-        content: [{ type: 'text', text }],
-      };
-    }
-  );
-
-  /**
    * 保存生成的 proposal
    */
   server.registerTool(

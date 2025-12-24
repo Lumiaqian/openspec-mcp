@@ -42,51 +42,6 @@ export function registerContextTools(server: McpServer, analyzer: ContextAnalyze
       }
     }
   );
-
-  // 获取上下文摘要
-  server.registerTool(
-    'openspec_get_context_summary',
-    {
-      description: '获取项目上下文摘要（技术栈和统计）',
-      inputSchema: {},
-    },
-    async (): Promise<{ content: Array<{ type: 'text'; text: string }> }> => {
-      try {
-        const cached = await analyzer.getCachedContext();
-        
-        if (!cached) {
-          return {
-            content: [{ type: 'text', text: '没有缓存的上下文，请先运行 openspec_analyze_context' }],
-          };
-        }
-        
-        const lines = [
-          `# 项目: ${cached.projectName}`,
-          '',
-          `**技术栈**: ${cached.stack.frameworks.join(', ') || '未检测到'}`,
-          `**语言**: ${cached.stack.languages.slice(0, 3).map((l: LanguageInfo) => `${l.name} (${l.percentage}%)`).join(', ')}`,
-          `**包管理**: ${cached.stack.packageManager}`,
-          `**测试框架**: ${cached.stack.testFramework || '未检测到'}`,
-          '',
-          `**文件数**: ${cached.stats.totalFiles}`,
-          `**预估行数**: ${cached.stats.totalLines.toLocaleString()}`,
-          '',
-          `*分析时间: ${cached.analyzedAt}*`,
-        ];
-        
-        return {
-          content: [{ type: 'text', text: lines.join('\n') }],
-        };
-      } catch (error) {
-        return {
-          content: [{
-            type: 'text',
-            text: `获取摘要失败: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          }],
-        };
-      }
-    }
-  );
 }
 
 /**

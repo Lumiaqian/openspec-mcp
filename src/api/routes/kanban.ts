@@ -6,8 +6,8 @@
 import type { FastifyInstance } from 'fastify';
 import type { ApiContext } from '../server.js';
 
-// 审批状态对应的看板列
-type KanbanColumn = 'draft' | 'pending_approval' | 'approved' | 'implementing' | 'completed' | 'archived';
+// 审批状态对应的看板列 (5 列)
+type KanbanColumn = 'draft' | 'pending_approval' | 'in_progress' | 'completed' | 'archived';
 
 interface KanbanCard {
   id: string;
@@ -34,12 +34,11 @@ interface KanbanData {
   };
 }
 
-// 列定义
+// 列定义 (5 列)
 const COLUMN_DEFINITIONS: Array<{ id: KanbanColumn; title: string; color: string }> = [
   { id: 'draft', title: 'Draft', color: '#6b7280' },
   { id: 'pending_approval', title: 'Pending', color: '#f59e0b' },
-  { id: 'approved', title: 'Approved', color: '#10b981' },
-  { id: 'implementing', title: 'Implementing', color: '#3b82f6' },
+  { id: 'in_progress', title: 'In Progress', color: '#3b82f6' },
   { id: 'completed', title: 'Completed', color: '#8b5cf6' },
   { id: 'archived', title: 'Archived', color: '#9ca3af' },
 ];
@@ -51,9 +50,11 @@ function statusToColumn(status?: string, isArchived?: boolean): KanbanColumn {
   const mapping: Record<string, KanbanColumn> = {
     draft: 'draft',
     pending_approval: 'pending_approval',
-    approved: 'approved',
-    rejected: 'draft', // 拒绝后回到 draft
-    implementing: 'implementing',
+    in_progress: 'in_progress',
+    // 兼容旧数据
+    approved: 'in_progress',
+    implementing: 'in_progress',
+    rejected: 'draft',
     completed: 'completed',
   };
   
@@ -81,8 +82,7 @@ export function registerKanbanRoutes(fastify: FastifyInstance, ctx: ApiContext):
         byColumn: {
           draft: 0,
           pending_approval: 0,
-          approved: 0,
-          implementing: 0,
+          in_progress: 0,
           completed: 0,
           archived: 0,
         },
@@ -161,19 +161,14 @@ export function registerKanbanRoutes(fastify: FastifyInstance, ctx: ApiContext):
           await approvalManager.requestApproval(id, 'user', note ? [note] : undefined);
           break;
           
-        case 'approved':
-          // 批准变更
+        case 'in_progress':
+          // 批准变更（直接进入 in_progress）
           await approvalManager.approve(id, 'user', note);
           break;
           
         case 'draft':
           // 退回到草稿
           await approvalManager.resetToDraft(id, 'user');
-          break;
-          
-        case 'implementing':
-          // 开始实施
-          await approvalManager.startImplementation(id, 'user');
           break;
           
         case 'completed':
@@ -209,8 +204,7 @@ export function registerKanbanRoutes(fastify: FastifyInstance, ctx: ApiContext):
     const summary: Record<KanbanColumn, number> = {
       draft: 0,
       pending_approval: 0,
-      approved: 0,
-      implementing: 0,
+      in_progress: 0,
       completed: 0,
       archived: 0,
     };

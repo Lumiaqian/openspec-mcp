@@ -256,10 +256,12 @@ function formatStatus(status: string): string {
   const statusMap: Record<string, string> = {
     draft: '📝 Draft',
     pending_approval: '⏳ Pending Approval',
-    approved: '✅ Approved',
+    in_progress: '🔧 In Progress',
     rejected: '❌ Rejected',
-    implementing: '🔧 Implementing',
     completed: '🎉 Completed',
+    // 兼容旧数据
+    approved: '🔧 In Progress',
+    implementing: '🔧 In Progress',
   };
   return statusMap[status] || status;
 }

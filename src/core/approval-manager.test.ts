@@ -47,7 +47,7 @@ describe('ApprovalManager', () => {
       await manager.requestApproval('test-change', 'user1');
       const record = await manager.approve('test-change', 'approver1', 'Looks good!');
 
-      expect(record.status).toBe('approved');
+      expect(record.status).toBe('in_progress');
       expect(record.approvals).toHaveLength(1);
       expect(record.approvals[0].approver).toBe('approver1');
       expect(record.approvals[0].comment).toBe('Looks good!');
@@ -82,8 +82,8 @@ describe('ApprovalManager', () => {
       // Second reviewer approves
       record = await manager.approve('test-change', 'reviewer2', 'Also LGTM');
       
-      // Now it should be approved
-      expect(record.status).toBe('approved');
+      // Now it should be in_progress
+      expect(record.status).toBe('in_progress');
       expect(record.approvals).toHaveLength(2);
     });
   });
@@ -106,20 +106,16 @@ describe('ApprovalManager', () => {
       let record = await manager.requestApproval('test-change', 'author');
       expect(record.status).toBe('pending_approval');
 
-      // Approve
+      // Approve (now directly goes to in_progress)
       record = await manager.approve('test-change', 'reviewer');
-      expect(record.status).toBe('approved');
-
-      // Start implementation
-      record = await manager.startImplementation('test-change', 'author');
-      expect(record.status).toBe('implementing');
+      expect(record.status).toBe('in_progress');
 
       // Mark completed
       record = await manager.markCompleted('test-change', 'author');
       expect(record.status).toBe('completed');
 
       // Verify history
-      expect(record.history).toHaveLength(4);
+      expect(record.history).toHaveLength(3);
     });
 
     it('should support rejection and resubmission', async () => {

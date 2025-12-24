@@ -22,7 +22,6 @@ import { registerApprovalsRoutes } from './routes/approvals.js';
 import { registerProjectRoutes } from './routes/project.js';
 import { registerKanbanRoutes } from './routes/kanban.js';
 import { registerContextRoutes } from './routes/context.js';
-import { registerQARoutes } from './routes/qa.js';
 import { CrossServiceManager } from '../core/cross-service-manager.js';
 import { VERSION } from '../utils/version.js';
 
@@ -84,6 +83,34 @@ async function listenWithFallback(instance: FastifyInstance, preferredPort: numb
   }
 
   throw new Error(`No available port found starting from ${preferredPort}`);
+}
+
+/**
+ * 自动打开浏览器
+ */
+function openBrowser(url: string): void {
+  import('child_process').then(({ spawn }) => {
+    const platform = process.platform;
+    
+    let cmd: string;
+    let args: string[];
+    
+    if (platform === 'darwin') {
+      cmd = 'open';
+      args = [url];
+    } else if (platform === 'win32') {
+      cmd = 'cmd';
+      args = ['/c', 'start', url];
+    } else {
+      cmd = 'xdg-open';
+      args = [url];
+    }
+    
+    const child = spawn(cmd, args, { detached: true, stdio: 'ignore' });
+    child.unref();
+  }).catch(() => {
+    // 忽略错误，打开浏览器失败不影响服务器运行
+  });
 }
 
 /**
@@ -237,7 +264,6 @@ export async function startApiServer(options: ApiServerOptions): Promise<Fastify
       registerProjectRoutes(instance, ctx);
       registerKanbanRoutes(instance, ctx);
       registerContextRoutes(instance, ctx);
-      registerQARoutes(instance, ctx);
     },
     { prefix: '/api' }
   );
@@ -338,8 +364,12 @@ export async function startApiServer(options: ApiServerOptions): Promise<Fastify
     if (actualPort !== port || port === 0) {
       fastify.log.warn(`Dashboard port ${port} unavailable, using ${actualPort} instead`);
     }
-    console.log(`\n🚀 OpenSpec MCP Dashboard running at http://localhost:${actualPort}`);
+    const url = `http://localhost:${actualPort}`;
+    console.log(`\n🚀 OpenSpec MCP Dashboard running at ${url}`);
     console.log(`📁 Watching: ${cwd}/openspec`);
+    
+    // 自动打开浏览器
+    openBrowser(url);
   } catch (err) {
     fastify.log.error(err);
     process.exit(1);

@@ -46,13 +46,12 @@ export const WS_MESSAGE_TYPES = {
 } as const;
 
 /**
- * 审批状态
+ * 审批状态 (5 个)
  */
 export const APPROVAL_STATUS = {
   DRAFT: 'draft',
   PENDING_APPROVAL: 'pending_approval',
-  APPROVED: 'approved',
+  IN_PROGRESS: 'in_progress',
   REJECTED: 'rejected',
-  IMPLEMENTING: 'implementing',
   COMPLETED: 'completed',
 } as const;

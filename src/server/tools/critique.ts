@@ -54,71 +54,52 @@ export function registerCritiqueTools(server: McpServer, critic: SpecCritic): vo
     }
   );
 
-  // 获取评审历史
+  // 获取评审结果（支持最新或历史）
   server.registerTool(
-    'openspec_get_critique_history',
+    'openspec_get_critique_result',
     {
-      description: '获取变更的评审历史记录',
+      description: '获取变更的评审结果（最新或历史记录）',
       inputSchema: {
         changeName: z.string().describe('变更 ID'),
-        limit: z.number().optional().describe('返回记录数量限制，默认 5'),
+        latest: z.boolean().optional().describe('只获取最新结果，默认 true'),
+        limit: z.number().optional().describe('历史记录数量限制（仅当 latest=false 时有效），默认 5'),
       },
     },
-    async ({ changeName, limit = 5 }): Promise<{ content: Array<{ type: 'text'; text: string }> }> => {
+    async ({ changeName, latest = true, limit = 5 }): Promise<{ content: Array<{ type: 'text'; text: string }> }> => {
       try {
-        const history = await critic.getCritiqueHistory(changeName);
-        const limited = history.slice(0, limit);
-        
-        if (limited.length === 0) {
-          return {
-            content: [{ type: 'text', text: `没有找到 ${changeName} 的评审历史` }],
-          };
-        }
-        
-        const output = limited.map((r: CritiqueResult, i: number) => {
-          return `## ${i + 1}. ${r.documentType} (${r.createdAt})
+        if (latest) {
+          // 获取最新结果
+          const result = await critic.getLatestCritique(changeName);
+          
+          if (!result) {
+            return {
+              content: [{ type: 'text', text: `没有找到 ${changeName} 的评审记录，请先运行 openspec_critique_proposal` }],
+            };
+          }
+          
+          const output = formatCritiqueResult(result);
+          return { content: [{ type: 'text', text: output }] };
+        } else {
+          // 获取历史记录
+          const history = await critic.getCritiqueHistory(changeName);
+          const limited = history.slice(0, limit);
+          
+          if (limited.length === 0) {
+            return {
+              content: [{ type: 'text', text: `没有找到 ${changeName} 的评审历史` }],
+            };
+          }
+          
+          const output = limited.map((r: CritiqueResult, i: number) => {
+            return `## ${i + 1}. ${r.documentType} (${r.createdAt})
 - 总分: ${r.overallScore}/10
 - 问题: ${r.summary.total} (Critical: ${r.summary.critical}, Warning: ${r.summary.warning}, Info: ${r.summary.info})`;
-        }).join('\n\n');
-        
-        return {
-          content: [{ type: 'text', text: `# ${changeName} 评审历史\n\n${output}` }],
-        };
-      } catch (error) {
-        return {
-          content: [{
-            type: 'text',
-            text: `获取历史失败: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          }],
-        };
-      }
-    }
-  );
-
-  // 获取最新评审结果
-  server.registerTool(
-    'openspec_get_latest_critique',
-    {
-      description: '获取变更的最新评审结果',
-      inputSchema: {
-        changeName: z.string().describe('变更 ID'),
-      },
-    },
-    async ({ changeName }): Promise<{ content: Array<{ type: 'text'; text: string }> }> => {
-      try {
-        const result = await critic.getLatestCritique(changeName);
-        
-        if (!result) {
+          }).join('\n\n');
+          
           return {
-            content: [{ type: 'text', text: `没有找到 ${changeName} 的评审记录，请先运行 openspec_critique_proposal` }],
+            content: [{ type: 'text', text: `# ${changeName} 评审历史\n\n${output}` }],
           };
         }
-        
-        const output = formatCritiqueResult(result);
-        
-        return {
-          content: [{ type: 'text', text: output }],
-        };
       } catch (error) {
         return {
           content: [{

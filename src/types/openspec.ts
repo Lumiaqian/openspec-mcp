@@ -8,13 +8,12 @@ export type ChangeStatus = 'active' | 'archived';
 // 任务状态
 export type TaskStatus = 'pending' | 'in_progress' | 'done';
 
-// 审批状态
+// 审批状态 (5 个: draft → pending → in_progress → completed, rejected 回到 draft)
 export type ApprovalStatus =
   | 'draft'
   | 'pending_approval'
-  | 'approved'
+  | 'in_progress'      // 合并了 approved + implementing
   | 'rejected'
-  | 'implementing'
   | 'completed';
 
 // Delta 操作类型

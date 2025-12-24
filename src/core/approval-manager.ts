@@ -141,9 +141,9 @@ export class ApprovalManager {
       allApproved = record.reviewers.every(reviewer => approvers.has(reviewer));
     }
 
-    // 更新状态
+    // 更新状态：审批通过后直接进入 in_progress
     if (allApproved) {
-      record.status = 'approved';
+      record.status = 'in_progress';
     }
 
     // 添加历史记录
@@ -201,37 +201,7 @@ export class ApprovalManager {
     return record;
   }
 
-  /**
-   * 开始实施
-   */
-  async startImplementation(
-    changeId: string,
-    implementer: string
-  ): Promise<ApprovalRecord> {
-    const record = await this.getApprovalStatus(changeId);
-    const now = new Date().toISOString();
-
-    if (!record) {
-      throw new Error(`No approval record found for change: ${changeId}`);
-    }
-
-    if (record.status !== 'approved') {
-      throw new Error(
-        `Cannot start implementation in status: ${record.status}. Must be approved.`
-      );
-    }
-
-    record.status = 'implementing';
-
-    record.history.push({
-      action: 'start_implementation',
-      by: implementer,
-      at: now,
-    });
-
-    await this.saveApproval(record);
-    return record;
-  }
+  // startImplementation 已移除：审批通过后直接进入 in_progress
 
   /**
    * 标记完成
@@ -244,9 +214,9 @@ export class ApprovalManager {
       throw new Error(`No approval record found for change: ${changeId}`);
     }
 
-    if (record.status !== 'implementing') {
+    if (record.status !== 'in_progress') {
       throw new Error(
-        `Cannot mark as completed in status: ${record.status}. Must be implementing.`
+        `Cannot mark as completed in status: ${record.status}. Must be in_progress.`
       );
     }
 

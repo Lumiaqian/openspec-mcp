@@ -90,11 +90,12 @@ Directly leverage your Client's AI capabilities (Claude, Codex) with context-awa
 
 ### Guides & Context
 
-| Tool                           | Description                  |
-| ------------------------------ | ---------------------------- |
-| `openspec_get_instructions`    | Get AGENTS.md usage guide    |
-| `openspec_get_project_context` | Get project.md context       |
-| `openspec_ai_analyze_context`  | AI-enhanced context analysis |
+| Tool                           | Description                       |
+| ------------------------------ | --------------------------------- |
+| `openspec_get_instructions`    | Get AGENTS.md usage guide         |
+| `openspec_get_project_context` | Get project.md context            |
+| `openspec_analyze_context`     | Analyze project structure & stack |
+| `openspec_ai_analyze_context`  | AI-enhanced context analysis      |
 
 ### Management
 
@@ -140,14 +141,13 @@ Directly leverage your Client's AI capabilities (Claude, Codex) with context-awa
 
 ### Reviews
 
-| Tool                                | Description                                 |
-| ----------------------------------- | ------------------------------------------- |
-| `openspec_add_review`               | Add review comment to proposal/design/tasks |
-| `openspec_list_reviews`             | List reviews with filters                   |
-| `openspec_reply_review`             | Reply to a review                           |
-| `openspec_resolve_review`           | Mark review as resolved                     |
-| `openspec_get_review_summary`       | Get review statistics                       |
-| `openspec_check_approval_readiness` | Check if ready for approval                 |
+| Tool                          | Description                                 |
+| ----------------------------- | ------------------------------------------- |
+| `openspec_add_review`         | Add review comment to proposal/design/tasks |
+| `openspec_list_reviews`       | List reviews with filters                   |
+| `openspec_reply_review`       | Reply to a review                           |
+| `openspec_resolve_review`     | Mark review as resolved                     |
+| `openspec_get_review_summary` | Get review statistics & blocking issues     |
 
 ### Templates
 
@@ -161,9 +161,8 @@ Directly leverage your Client's AI capabilities (Claude, Codex) with context-awa
 
 | Tool                         | Description                         |
 | ---------------------------- | ----------------------------------- |
-| `openspec_prepare_proposal`  | Prepare proposal structure          |
-| `openspec_save_proposal`     | Save generated proposal             |
 | `openspec_generate_proposal` | Generate proposal from requirements |
+| `openspec_save_proposal`     | Save generated proposal             |
 
 ### Hooks
 

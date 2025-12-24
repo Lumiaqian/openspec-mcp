@@ -225,37 +225,4 @@ export function registerReviewTools(server: McpServer, reviewManager: ReviewMana
       return { content: [{ type: 'text', text }] };
     }
   );
-
-  /**
-   * 检查审批准备状态
-   */
-  server.registerTool(
-    'openspec_check_approval_readiness',
-    {
-      description: 'Check if a change is ready for approval',
-      inputSchema: {
-        changeId: z.string(),
-      },
-    },
-    async ({ changeId }) => {
-      const blockers = await reviewManager.checkApprovalReadiness(changeId);
-
-      if (blockers.length === 0) {
-        return {
-          content: [{ type: 'text', text: `✅ Change ${changeId} is ready for approval!` }],
-        };
-      }
-
-      let text = `❌ Change ${changeId} is NOT ready for approval:\n\n`;
-      for (const blocker of blockers) {
-        text += `   • ${blocker}\n`;
-      }
-      text += `\nResolve these issues before requesting approval.`;
-
-      return {
-        content: [{ type: 'text', text }],
-        isError: true,
-      };
-    }
-  );
 }
