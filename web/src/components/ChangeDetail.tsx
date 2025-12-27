@@ -33,20 +33,32 @@ interface Revision {
   reason?: string;
   author: string;
   createdAt: string;
+  metadata?: {
+    type: 'contract' | 'behavior' | 'internal';
+    affectedAPI?: string;
+    affectedField?: string;
+    updateTarget: ('specs' | 'design' | 'delta-specs')[];
+    source?: {
+      file: string;
+      function: string;
+    };
+  };
 }
 
-const typeIcons: Record<Review['type'], string> = {
-  comment: '💬',
-  suggestion: '💡',
-  question: '❓',
-  issue: '🚨',
-};
+// Simple icon components
+const LinkIcon = ({ className }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 20 20" fill="currentColor">
+    <path fillRule="evenodd" d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-2.828 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z" clipRule="evenodd" />
+  </svg>
+);
 
-const severityColors: Record<string, string> = {
-  low: 'bg-gray-100 text-gray-600',
-  medium: 'bg-yellow-100 text-yellow-700',
-  high: 'bg-red-100 text-red-700',
-};
+const CodeIcon = ({ className }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 20 20" fill="currentColor">
+    <path fillRule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
+  </svg>
+);
+
+// Simple icon components
 
 export default function ChangeDetail() {
   const { id } = useParams<{ id: string }>();
@@ -69,6 +81,7 @@ export default function ChangeDetail() {
 
   // Revisions state
   const [revisions, setRevisions] = useState<Revision[]>([]);
+  const [expandedRevisionId, setExpandedRevisionId] = useState<string | null>(null);
 
   // Fetch data on mount
   useEffect(() => {
@@ -473,18 +486,96 @@ export default function ChangeDetail() {
                   📝 Revisions <span className="text-xs text-gray-400">({revisions.length})</span>
                 </h3>
               </div>
-              <div className="p-4 space-y-2 max-h-48 overflow-y-auto">
-                {revisions.map((rev) => (
-                  <div key={rev.id} className="p-2 bg-yellow-50 rounded border border-yellow-200 text-sm">
-                    <div className="font-medium text-gray-700">{rev.description}</div>
-                    {rev.reason && (
-                      <div className="text-xs text-gray-500 mt-1">Reason: {rev.reason}</div>
-                    )}
-                    <div className="text-xs text-gray-400 mt-1">
-                      {new Date(rev.createdAt).toLocaleDateString()}
-                    </div>
-                  </div>
-                ))}
+              <div className="p-4 pr-1">
+                <div className="relative border-l border-gray-100 ml-3 space-y-6 pb-2">
+                  {revisions.map((rev) => {
+                    const type = rev.metadata?.type || 'internal';
+                    
+                    // Timeline dot colors
+                    const dotColorClass = type === 'contract' ? 'bg-blue-500' : 
+                                         type === 'behavior' ? 'bg-amber-500' : 'bg-gray-400';
+                    
+                    const isExpanded = expandedRevisionId === rev.id;
+                    
+                    return (
+                      <div key={rev.id} className="relative pl-6 group">
+                        {/* Timeline Dot */}
+                        <div 
+                          className={`absolute -left-[5px] top-1.5 w-2.5 h-2.5 rounded-full border-2 border-white ring-1 ring-transparent group-hover:scale-110 transition-transform ${dotColorClass}`} 
+                        />
+                        
+                        {/* Content Container */}
+                        <div 
+                          className="cursor-pointer"
+                          onClick={() => setExpandedRevisionId(isExpanded ? null : rev.id)}
+                        >
+                          {/* Header: Date & Type */}
+                          <div className="flex items-center space-x-2 mb-1">
+                            <span className="text-xs font-semibold text-gray-900">
+                              {new Date(rev.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                            </span>
+                            <span className={`text-[10px] uppercase tracking-wider font-medium opacity-60 ${
+                              type === 'contract' ? 'text-blue-600' : type === 'behavior' ? 'text-amber-600' : 'text-gray-500'
+                            }`}>
+                              {type}
+                            </span>
+                          </div>
+                          
+                          {/* Description */}
+                          <div className={`text-sm text-gray-700 leading-snug hover:text-gray-900 transition-colors ${!isExpanded && 'line-clamp-2'}`}>
+                            {rev.description}
+                          </div>
+
+                          {/* Quick Metadata Preview (API/File) */}
+                          <div className="mt-1.5 flex items-center">
+                            {rev.metadata?.affectedAPI ? (
+                              <div className="flex items-center text-xs text-gray-500 font-mono truncate hover:text-blue-600 transition-colors" title={rev.metadata.affectedAPI}>
+                                <LinkIcon className="w-3 h-3 mr-1.5 flex-shrink-0 opacity-50" />
+                                <span className="truncate">{rev.metadata.affectedAPI}</span>
+                              </div>
+                            ) : rev.metadata?.source && !isExpanded ? (
+                              <div className="flex items-center text-[10px] text-gray-400 font-mono">
+                                <CodeIcon className="w-3 h-3 mr-1.5 flex-shrink-0 opacity-50" />
+                                <span className="truncate">{rev.metadata.source.file.split('/').pop()}</span>
+                              </div>
+                            ) : null}
+                          </div>
+                          
+                          {/* Expanded Details */}
+                          {isExpanded && (
+                            <div className="mt-2 pt-2 border-t border-dashed border-gray-100 space-y-2 animate-fadeIn bg-gray-50/50 -ml-2 p-2 rounded">
+                              {rev.reason && (
+                                <div className="text-xs text-gray-500 italic">
+                                  {rev.reason}
+                                </div>
+                              )}
+                              
+                              {rev.metadata && (
+                                <div className="space-y-1 pt-1">
+                                  {rev.metadata.updateTarget.length > 0 && (
+                                    <div className="flex flex-wrap gap-1">
+                                      {rev.metadata.updateTarget.map(target => (
+                                        <span key={target} className="px-1.5 py-0.5 bg-white border border-gray-100 text-gray-500 text-[10px] rounded shadow-sm">
+                                          {target}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  )}
+                                  
+                                  {rev.metadata.source && (
+                                    <div className="flex items-center text-xs text-gray-400 group-hover:text-gray-500">
+                                       <span className="font-mono text-[10px]">{rev.metadata.source.file}:{rev.metadata.source.function}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           )}
@@ -520,7 +611,7 @@ export default function ChangeDetail() {
               </div>
             </div>
 
-            <div className="flex-1 p-4 space-y-3 overflow-y-auto">
+            <div className="flex-1 p-4 pr-1 overflow-y-auto">
               {currentReviews.length === 0 ? (
                 <div className="text-center py-8">
                   <p className="text-sm text-gray-400">
@@ -533,52 +624,80 @@ export default function ChangeDetail() {
                   )}
                 </div>
               ) : (
-                currentReviews.map((review) => (
-                  <div
-                    key={review.id}
-                    className="p-3 bg-gray-50 rounded-lg border border-gray-200 group hover:border-blue-300 transition-colors"
-                  >
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="flex items-center space-x-1">
-                        <span className="text-lg">{typeIcons[review.type]}</span>
-                        {review.severity && (
-                          <span className={`px-1.5 py-0.5 rounded text-xs ${severityColors[review.severity]}`}>
-                            {review.severity}
-                          </span>
-                        )}
-                        {review.lineNumber && (
-                          <span className="text-xs text-gray-400">L{review.lineNumber}</span>
-                        )}
+                <div className="relative border-l border-gray-100 ml-3 space-y-6 pb-2">
+                  {currentReviews.map((review) => {
+                    // Determine dot color based on severity or type
+                    let dotColorClass = 'bg-gray-400';
+                    if (review.severity === 'high') dotColorClass = 'bg-red-500';
+                    else if (review.severity === 'medium') dotColorClass = 'bg-yellow-500';
+                    else if (review.type === 'issue') dotColorClass = 'bg-red-400';
+                    else if (review.type === 'suggestion') dotColorClass = 'bg-blue-400';
+                    else if (review.type === 'question') dotColorClass = 'bg-purple-400';
+
+                    return (
+                      <div key={review.id} className="relative pl-6 group">
+                        {/* Timeline Dot */}
+                        <div 
+                          className={`absolute -left-[5px] top-1.5 w-2.5 h-2.5 rounded-full border-2 border-white ring-1 ring-transparent group-hover:scale-110 transition-transform ${dotColorClass}`} 
+                        />
+
+                        {/* Content */}
+                        <div>
+                          {/* Header */}
+                          <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center space-x-2">
+                              <span className="text-xs font-semibold text-gray-900">
+                                {review.author}
+                              </span>
+                              <span className="text-[10px] text-gray-400">
+                                {new Date(review.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                              </span>
+                              {review.lineNumber && (
+                                <span className="text-[10px] font-mono text-gray-400 bg-gray-50 px-1 rounded">
+                                  L{review.lineNumber}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Actions (visible on hover) */}
+                            <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                              {review.status === 'open' && reviewableTab && (
+                                <button
+                                  onClick={() => handleResolveReview(review.id, reviewableTab)}
+                                  className="text-[10px] text-green-600 hover:text-green-700 bg-green-50 px-1.5 py-0.5 rounded border border-green-100 hover:border-green-200"
+                                  title="Resolve review"
+                                >
+                                  Resolve
+                                </button>
+                              )}
+                              {review.status === 'resolved' && (
+                                <span className="text-[10px] text-green-600 flex items-center">
+                                  ✓ Resolved
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Body */}
+                          <div className="prose prose-xs max-w-none text-gray-700 break-words leading-snug prose-p:my-1 prose-ul:my-1 prose-li:my-0 prose-code:break-all prose-code:text-xs prose-code:bg-gray-50 prose-code:rounded prose-code:px-1 prose-code:py-0.5 prose-strong:font-medium">
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                              {review.body}
+                            </ReactMarkdown>
+                          </div>
+                          
+                          {/* Replies or Status badge if needed */}
+                          {review.status === 'wont_fix' && (
+                             <div className="mt-1">
+                                <span className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">
+                                  Won't Fix
+                                </span>
+                             </div>
+                          )}
+                        </div>
                       </div>
-                      {/* Only show resolve button for open reviews */}
-                      {review.status === 'open' && reviewableTab ? (
-                        <button
-                          onClick={() => handleResolveReview(review.id, reviewableTab)}
-                          className="text-green-500 hover:text-green-700 opacity-0 group-hover:opacity-100 transition-opacity"
-                          title="Resolve"
-                        >
-                          ✓
-                        </button>
-                      ) : (
-                        <span className={`text-xs px-2 py-0.5 rounded ${
-                          review.status === 'resolved' 
-                            ? 'bg-green-100 text-green-600' 
-                            : 'bg-gray-100 text-gray-500'
-                        }`}>
-                          {review.status === 'resolved' ? '✓ resolved' : '⏭️ won\'t fix'}
-                        </span>
-                      )}
-                    </div>
-                    <div className="prose prose-xs max-w-none text-gray-700 break-words overflow-hidden prose-p:my-1 prose-ul:my-1 prose-li:my-0 prose-code:break-all prose-code:text-xs">
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                        {review.body}
-                      </ReactMarkdown>
-                    </div>
-                    <div className="text-xs text-gray-400 mt-2">
-                      by {review.author} • {new Date(review.createdAt).toLocaleDateString()}
-                    </div>
-                  </div>
-                ))
+                    );
+                  })}
+                </div>
               )}
             </div>
           </div>

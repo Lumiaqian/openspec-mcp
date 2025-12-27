@@ -8,6 +8,25 @@ import * as path from 'path';
 import { randomUUID } from 'crypto';
 
 /**
+ * 变更元数据
+ */
+export interface RevisionMetadata {
+  /** 偏离类型 */
+  type: 'contract' | 'behavior' | 'internal';
+  /** 影响的 API（contract/behavior 时推荐填写） */
+  affectedAPI?: string;
+  /** 影响的字段 */
+  affectedField?: string;
+  /** 更新目标 */
+  updateTarget: ('specs' | 'design' | 'delta-specs')[];
+  /** 关联的代码位置 */
+  source?: {
+    file: string;
+    function: string;
+  };
+}
+
+/**
  * 变更记录
  */
 export interface Revision {
@@ -16,6 +35,8 @@ export interface Revision {
   reason?: string;
   author: string;
   createdAt: string;
+  /** 变更元数据 */
+  metadata?: RevisionMetadata;
 }
 
 /**
@@ -74,7 +95,7 @@ export class RevisionManager {
   async recordRevision(
     changeId: string,
     description: string,
-    options?: { reason?: string; author?: string }
+    options?: { reason?: string; author?: string; metadata?: RevisionMetadata }
   ): Promise<Revision> {
     const data = await this.loadRevisions(changeId);
     
@@ -84,6 +105,7 @@ export class RevisionManager {
       reason: options?.reason,
       author: options?.author || 'AI',
       createdAt: new Date().toISOString(),
+      metadata: options?.metadata,
     };
     
     data.revisions.push(revision);
@@ -93,11 +115,54 @@ export class RevisionManager {
   }
 
   /**
+   * 更新设计变更
+   */
+  async updateRevision(
+    changeId: string,
+    revisionId: string,
+    updates: { metadata?: RevisionMetadata }
+  ): Promise<Revision | null> {
+    const data = await this.loadRevisions(changeId);
+    
+    const index = data.revisions.findIndex(r => r.id === revisionId);
+    if (index === -1) {
+      return null;
+    }
+
+    const revision = data.revisions[index];
+    
+    // Merge metadata
+    if (updates.metadata) {
+      revision.metadata = {
+        ...revision.metadata,
+        ...updates.metadata,
+      } as RevisionMetadata;
+    }
+    
+    data.revisions[index] = revision;
+    await this.saveRevisions(data);
+    
+    return revision;
+  }
+
+  /**
    * 列出变更记录
    */
-  async listRevisions(changeId: string): Promise<Revision[]> {
+  async listRevisions(
+    changeId: string,
+    filters?: { type?: RevisionMetadata['type']; affectedAPI?: string }
+  ): Promise<Revision[]> {
     const data = await this.loadRevisions(changeId);
-    return data.revisions;
+    let revisions = data.revisions;
+    
+    if (filters?.type) {
+      revisions = revisions.filter(r => r.metadata?.type === filters.type);
+    }
+    if (filters?.affectedAPI) {
+      revisions = revisions.filter(r => r.metadata?.affectedAPI === filters.affectedAPI);
+    }
+    
+    return revisions;
   }
 
   /**
@@ -140,13 +205,15 @@ export class RevisionManager {
 
     // 生成 Revisions 章节
     let revisionsSection = '\n\n---\n\n## Revisions\n\n';
-    revisionsSection += '| 日期 | 变更描述 | 原因 |\n';
-    revisionsSection += '|------|----------|------|\n';
+    revisionsSection += '| 日期 | 类型 | 变更描述 | 原因 | 影响 API |\n';
+    revisionsSection += '|------|------|----------|------|----------|\n';
     
     for (const rev of data.revisions) {
       const date = rev.createdAt.slice(0, 10);
+      const type = rev.metadata?.type || '-';
       const reason = rev.reason || '-';
-      revisionsSection += `| ${date} | ${rev.description} | ${reason} |\n`;
+      const api = rev.metadata?.affectedAPI || '-';
+      revisionsSection += `| ${date} | ${type} | ${rev.description} | ${reason} | ${api} |\n`;
     }
 
     // 追加到文件

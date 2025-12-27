@@ -88,14 +88,30 @@ export const changesApi = {
 
   // Revisions
   getRevisions: (id: string) =>
-    fetchJson<{ revisions: Array<{ id: string; description: string; reason?: string; author: string; createdAt: string }> }>(
+    fetchJson<{ revisions: Array<{ 
+      id: string; 
+      description: string; 
+      reason?: string; 
+      author: string; 
+      createdAt: string;
+      metadata?: {
+        type: 'contract' | 'behavior' | 'internal';
+        affectedAPI?: string;
+        affectedField?: string;
+        updateTarget: ('specs' | 'design' | 'delta-specs')[];
+        source?: {
+          file: string;
+          function: string;
+        };
+      };
+    }> }>(
       `/changes/${id}/revisions`
     ),
 
-  addRevision: (id: string, description: string, reason?: string) =>
+  addRevision: (id: string, description: string, reason?: string, metadata?: any) =>
     fetchJson<{ revision: any }>(`/changes/${id}/revisions`, {
       method: 'POST',
-      body: JSON.stringify({ description, reason }),
+      body: JSON.stringify({ description, reason, metadata }),
     }),
 };
 
