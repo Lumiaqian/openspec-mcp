@@ -501,7 +501,7 @@ export default function ChangeDetail() {
                       <div key={rev.id} className="relative pl-6 group">
                         {/* Timeline Dot */}
                         <div 
-                          className={`absolute -left-[5px] top-1.5 w-2.5 h-2.5 rounded-full border-2 border-white ring-1 ring-transparent group-hover:scale-110 transition-transform ${dotColorClass}`} 
+                          className={`absolute -left-[5px] top-2.5 w-2.5 h-2.5 rounded-full border-2 border-white ring-1 ring-transparent group-hover:scale-110 transition-transform ${dotColorClass}`} 
                         />
                         
                         {/* Content Container */}
@@ -527,14 +527,14 @@ export default function ChangeDetail() {
                           </div>
 
                           {/* Quick Metadata Preview (API/File) */}
-                          <div className="mt-1.5 flex items-center">
+                          <div className="mt-1.5 flex items-center min-w-0">
                             {rev.metadata?.affectedAPI ? (
-                              <div className="flex items-center text-xs text-gray-500 font-mono truncate hover:text-blue-600 transition-colors" title={rev.metadata.affectedAPI}>
+                              <div className="flex items-center text-xs text-gray-500 font-mono truncate hover:text-blue-600 transition-colors w-full" title={rev.metadata.affectedAPI}>
                                 <LinkIcon className="w-3 h-3 mr-1.5 flex-shrink-0 opacity-50" />
                                 <span className="truncate">{rev.metadata.affectedAPI}</span>
                               </div>
                             ) : rev.metadata?.source && !isExpanded ? (
-                              <div className="flex items-center text-[10px] text-gray-400 font-mono">
+                              <div className="flex items-center text-[10px] text-gray-400 font-mono w-full">
                                 <CodeIcon className="w-3 h-3 mr-1.5 flex-shrink-0 opacity-50" />
                                 <span className="truncate">{rev.metadata.source.file.split('/').pop()}</span>
                               </div>
@@ -564,7 +564,9 @@ export default function ChangeDetail() {
                                   
                                   {rev.metadata.source && (
                                     <div className="flex items-center text-xs text-gray-400 group-hover:text-gray-500">
-                                       <span className="font-mono text-[10px]">{rev.metadata.source.file}:{rev.metadata.source.function}</span>
+                                       <span className="font-mono text-[10px] truncate w-full" title={`${rev.metadata.source.file}:${rev.metadata.source.function}`}>
+                                         {rev.metadata.source.file.split('/').pop()}:{rev.metadata.source.function}
+                                       </span>
                                     </div>
                                   )}
                                 </div>

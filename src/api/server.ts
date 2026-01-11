@@ -87,32 +87,69 @@ async function listenWithFallback(instance: FastifyInstance, preferredPort: numb
   throw new Error(`No available port found starting from ${preferredPort}`);
 }
 
+import { spawn, ChildProcess } from 'child_process';
+
+// 存储浏览器进程引用，用于退出时关闭
+let browserProcess: ChildProcess | null = null;
+
 /**
  * 自动打开浏览器
  */
 function openBrowser(url: string): void {
-  import('child_process').then(({ spawn }) => {
-    const platform = process.platform;
+  const platform = process.platform;
+  
+  let cmd: string;
+  let args: string[];
+  
+  if (platform === 'darwin') {
+    // macOS: 使用 open -a 打开特定应用，这样可以更好地控制
+    cmd = 'open';
+    args = ['-na', 'Google Chrome', '--args', '--new-window', url];
+  } else if (platform === 'win32') {
+    cmd = 'cmd';
+    args = ['/c', 'start', 'chrome', url];
+  } else {
+    cmd = 'google-chrome';
+    args = ['--new-window', url];
+  }
+  
+  try {
+    // 不使用 detached 和 unref，保持对进程的引用
+    browserProcess = spawn(cmd, args, { stdio: 'ignore' });
     
-    let cmd: string;
-    let args: string[];
-    
-    if (platform === 'darwin') {
-      cmd = 'open';
-      args = [url];
-    } else if (platform === 'win32') {
-      cmd = 'cmd';
-      args = ['/c', 'start', url];
-    } else {
-      cmd = 'xdg-open';
-      args = [url];
-    }
-    
-    const child = spawn(cmd, args, { detached: true, stdio: 'ignore' });
-    child.unref();
-  }).catch(() => {
+    browserProcess.on('error', () => {
+      // 如果 Chrome 不可用，回退到默认浏览器
+      browserProcess = null;
+      let fallbackCmd: string;
+      let fallbackArgs: string[];
+      
+      if (platform === 'darwin') {
+        fallbackCmd = 'open';
+        fallbackArgs = [url];
+      } else if (platform === 'win32') {
+        fallbackCmd = 'cmd';
+        fallbackArgs = ['/c', 'start', url];
+      } else {
+        fallbackCmd = 'xdg-open';
+        fallbackArgs = [url];
+      }
+      
+      const fallback = spawn(fallbackCmd, fallbackArgs, { detached: true, stdio: 'ignore' });
+      fallback.unref();
+    });
+  } catch {
     // 忽略错误，打开浏览器失败不影响服务器运行
-  });
+  }
+}
+
+/**
+ * 关闭浏览器窗口
+ */
+function closeBrowser(): void {
+  if (browserProcess && !browserProcess.killed) {
+    browserProcess.kill();
+    browserProcess = null;
+  }
 }
 
 /**
@@ -394,6 +431,7 @@ export async function startApiServer(options: ApiServerOptions): Promise<Fastify
   // 优雅关闭
   const shutdown = async () => {
     console.log('\nShutting down...');
+    closeBrowser(); // 关闭浏览器窗口
     await fileWatcher.stop();
     await fastify.close();
     process.exit(0);
