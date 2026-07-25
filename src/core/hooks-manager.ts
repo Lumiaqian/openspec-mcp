@@ -5,6 +5,7 @@
 
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import type { ProjectContextRef } from './project-context.js';
 
 const PRE_COMMIT_SCRIPT = `#!/bin/sh
 # OpenSpec pre-commit hook
@@ -69,17 +70,17 @@ exit 0
 `;
 
 export class HooksManager {
-  private cwd: string;
+  private ref: ProjectContextRef;
 
-  constructor(options?: { cwd?: string }) {
-    this.cwd = options?.cwd || process.cwd();
+  constructor(options: { ref: ProjectContextRef }) {
+    this.ref = options.ref;
   }
 
   /**
    * 获取 Git hooks 目录
    */
   private getHooksDir(): string {
-    return path.join(this.cwd, '.git', 'hooks');
+    return path.join(this.ref.current, '.git', 'hooks');
   }
 
   /**
@@ -87,7 +88,7 @@ export class HooksManager {
    */
   async isGitRepo(): Promise<boolean> {
     try {
-      await fs.access(path.join(this.cwd, '.git'));
+      await fs.access(path.join(this.ref.current, '.git'));
       return true;
     } catch {
       return false;

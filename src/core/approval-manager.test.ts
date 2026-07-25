@@ -4,6 +4,7 @@
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ApprovalManager } from './approval-manager.js';
+import { createProjectContext } from './project-context.js';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
@@ -16,7 +17,7 @@ describe('ApprovalManager', () => {
     // 创建临时目录
     tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'approval-test-'));
     await fs.mkdir(path.join(tempDir, 'openspec', 'approvals'), { recursive: true });
-    manager = new ApprovalManager({ cwd: tempDir });
+    manager = new ApprovalManager({ ref: createProjectContext(tempDir) });
   });
 
   afterEach(async () => {

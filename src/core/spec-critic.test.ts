@@ -4,6 +4,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { SpecCritic, CritiqueResult } from './spec-critic.js';
+import { createProjectContext } from './project-context.js';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
@@ -15,7 +16,7 @@ describe('SpecCritic', () => {
   beforeEach(async () => {
     // 创建临时目录
     tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'spec-critic-test-'));
-    critic = new SpecCritic({ cwd: tempDir });
+    critic = new SpecCritic({ ref: createProjectContext(tempDir) });
     
     // 创建 openspec 目录结构
     const changeDir = path.join(tempDir, 'openspec', 'changes', 'test-change');
@@ -40,7 +41,7 @@ This is the solution.
       
       // 应该检测到缺少问题描述
       const missingProblem = result.critiques.find(c => 
-        c.category === 'completeness' && c.title.includes('问题')
+        c.category === 'completeness' && c.title.includes('descripción del problema')
       );
       expect(missingProblem).toBeDefined();
     });
@@ -57,7 +58,7 @@ This is the problem.
       
       // 应该检测到缺少解决方案
       const missingSolution = result.critiques.find(c => 
-        c.category === 'completeness' && c.title.includes('解决方案')
+        c.category === 'completeness' && c.title.includes('Falta solución')
       );
       expect(missingSolution).toBeDefined();
     });
@@ -93,7 +94,7 @@ TBD: Decide on the approach
       
       // 应该检测到文档过短
       const tooShort = result.critiques.find(c => 
-        c.category === 'clarity' && c.title.includes('过短')
+        c.category === 'clarity' && c.title.includes('Documento muy corto')
       );
       expect(tooShort).toBeDefined();
     });

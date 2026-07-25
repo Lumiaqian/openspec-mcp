@@ -22,13 +22,13 @@ export function registerAIContextTools(
   server.registerTool(
     'openspec_ai_analyze_context',
     {
-      description: `使用 AI 深度分析项目上下文并给出 project.md 更新建议。
-利用 MCP Client 的 AI 能力进行分析。`,
+      description: `Analiza el contexto del proyecto con IA y sugiere actualizaciones a project.md.
+Utiliza la capacidad de IA del MCP Client para el análisis.`,
       inputSchema: z.object({
         focus: z
           .enum(['overview', 'architecture', 'improvements', 'conventions'])
           .optional()
-          .describe('分析重点：overview(总览), architecture(架构), improvements(改进建议), conventions(约定规范)'),
+          .describe('Enfoque del análisis: overview(vista general), architecture(arquitectura), improvements(mejoras), conventions(convenciones)'),
       }),
     },
     async ({ focus = 'overview' }) => {
@@ -51,7 +51,7 @@ export function registerAIContextTools(
             content: [
               {
                 type: 'text',
-                text: `${formatStaticContext(staticContext, projectMd)}\n\n> ⚠️ 注意: AI 深度分析不可用（${samplingResult.error}）。以上为静态分析结果。`,
+                text: `${formatStaticContext(staticContext, projectMd)}\n\n> ⚠️ Nota: El análisis profundo con IA no está disponible (${samplingResult.error}). Se muestran resultados del análisis estático.`,
               },
             ],
           };
@@ -68,7 +68,7 @@ export function registerAIContextTools(
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Unknown error';
         return {
-          content: [{ type: 'text', text: `❌ 分析失败: ${message}` }],
+          content: [{ type: 'text', text: `❌ Error en el análisis: ${message}` }],
           isError: true,
         };
       }
@@ -96,55 +96,55 @@ function buildAnalysisPrompt(
     .join('\n');
 
   const focusInstructions: Record<string, string> = {
-    overview: '请给出项目的整体概述和架构理解',
-    architecture: '请深入分析项目架构设计，包括分层、模块划分、依赖关系',
-    improvements: '请找出项目中可以改进的地方，包括代码组织、最佳实践、潜在问题',
-    conventions: '请分析项目的编码约定和规范，建议补充缺失的约定',
+    overview: 'Proporciona una visión general del proyecto y su arquitectura',
+    architecture: 'Analiza a fondo la arquitectura del proyecto, incluyendo capas, módulos y dependencias',
+    improvements: 'Identifica áreas de mejora en el proyecto, incluyendo organización del código, mejores prácticas y problemas potenciales',
+    conventions: 'Analiza las convenciones y estándares de codificación del proyecto, sugiere agregar las que falten',
   };
 
-  return `你是一个资深软件架构师，请分析以下项目并给出见解。
+  return `Eres un arquitecto de software senior. Analiza el siguiente proyecto y proporciona tus observaciones.
 
-## 分析重点
+## Enfoque del análisis
 ${focusInstructions[focus] || focusInstructions.overview}
 
-## 当前 project.md
+## project.md actual
 \`\`\`markdown
-${projectMd || '(尚未创建 openspec/project.md)'}
+${projectMd || '(aún no se ha creado openspec/project.md)'}
 \`\`\`
 
-## 静态分析结果
+## Resultados del análisis estático
 
-### 技术栈
-- 语言分布: ${languagesSummary}
-- 框架: ${context.stack.frameworks.join(', ') || '未检测到'}
-- 包管理器: ${context.stack.packageManager}
-- 构建工具: ${context.stack.buildTools.join(', ') || '无'}
-- 测试框架: ${context.stack.testFramework || '未检测到'}
-
-### 目录结构
+### Tecnologías
+- Distribución de lenguajes: ${languagesSummary}
+- Frameworks: ${context.stack.frameworks.join(', ') || 'No detectado'}
+- Gestor de paquetes: ${context.stack.packageManager}
+- Herramientas de compilación: ${context.stack.buildTools.join(', ') || 'Ninguna'}
+- Framework de pruebas: ${context.stack.testFramework || 'No detectado'}
+|
+### Estructura de directorios
 ${directoriesSummary}
 
-### 统计
-- 文件总数: ${context.stats.totalFiles}
-- 预估代码行数: ${context.stats.totalLines}
+### Estadísticas
+- Archivos totales: ${context.stats.totalFiles}
+- Líneas de código estimadas: ${context.stats.totalLines}
 
-### 关键文件
+### Archivos clave
 ${Object.entries(keyFiles)
   .map(([name, content]) => `#### ${name}\n\`\`\`\n${content.slice(0, 500)}${content.length > 500 ? '\n...(truncated)' : ''}\n\`\`\``)
   .join('\n\n')}
 
 ---
 
-请按以下格式输出：
+Usa el siguiente formato de salida:
 
-## 项目分析
-(你对项目的理解和分析)
+## Análisis del proyecto
+(Tu comprensión y análisis del proyecto)
 
-## project.md 更新建议
-(如果 project.md 已存在，使用 diff 格式标注增删；如果不存在，给出完整的推荐内容)
+## Sugerencias de actualización para project.md
+(Si project.md ya existe, usa formato diff para marcar cambios; si no existe, proporciona el contenido completo recomendado)
 
 \`\`\`markdown
-(更新后的 project.md 内容或 diff)
+(Contenido actualizado de project.md o diff)
 \`\`\`
 `;
 }
@@ -161,7 +161,7 @@ async function requestSampling(
     if (typeof (server as any).createMessage !== 'function') {
       return {
         success: false,
-        error: 'MCP Server 不支持 sampling，请确保 Client 支持此功能',
+        error: 'El MCP Server no soporta sampling. Asegúrate de que el Client tenga esta funcionalidad',
       };
     }
 
@@ -204,38 +204,38 @@ function formatStaticContext(context: ProjectContext, projectMd: string | null):
   
   const sections = [
     // 技术栈分析
-    `## 项目分析（静态）`,
+    `## Análisis del proyecto (estático)`,
     '',
-    `### 技术栈`,
-    `| 项目 | 信息 |`,
+    `### Tecnologías`,
+    `| Proyecto | Información |`,
     `|------|------|`,
-    `| **主要语言** | ${primaryLang?.name || '未知'} (${primaryLang?.percentage || 0}%) |`,
-    `| **语言分布** | ${langList} |`,
-    `| **框架** | ${context.stack.frameworks.join(', ') || '未检测到'} |`,
-    `| **包管理器** | ${context.stack.packageManager} |`,
-    `| **构建工具** | ${context.stack.buildTools.join(', ') || '无'} |`,
-    `| **测试框架** | ${context.stack.testFramework || '未检测到'} |`,
+    `| **Lenguaje principal** | ${primaryLang?.name || 'Desconocido'} (${primaryLang?.percentage || 0}%) |`,
+    `| **Distribución de lenguajes** | ${langList} |`,
+    `| **Frameworks** | ${context.stack.frameworks.join(', ') || 'No detectado'} |`,
+    `| **Gestor de paquetes** | ${context.stack.packageManager} |`,
+    `| **Herramientas de compilación** | ${context.stack.buildTools.join(', ') || 'Ninguna'} |`,
+    `| **Framework de pruebas** | ${context.stack.testFramework || 'No detectado'} |`,
     '',
     
     // 目录结构
-    `### 目录结构`,
+    `### Estructura de directorios`,
     '',
     ...context.structure.mainDirectories.slice(0, 10).map(d => 
-      `- \`${d.name}/\` - ${d.purpose} (${d.fileCount} 文件)`
+      `- \`${d.name}/\` - ${d.purpose} (${d.fileCount} archivos)`
     ),
     '',
     
     // 统计信息
-    `### 统计`,
-    `- **文件总数**: ${context.stats.totalFiles.toLocaleString()}`,
-    `- **预估代码行**: ${context.stats.totalLines.toLocaleString()}`,
+    `### Estadísticas`,
+    `- **Archivos totales**: ${context.stats.totalFiles.toLocaleString()}`,
+    `- **Líneas de código estimadas**: ${context.stats.totalLines.toLocaleString()}`,
     '',
     
     // 架构模式
-    `### 检测到的模式`,
-    `- **架构风格**: ${context.patterns.architecture}`,
-    `- **代码风格**: ${context.patterns.codeStyle.join(', ') || '未配置'}`,
-    `- **约定规范**: ${context.patterns.conventions.join(', ') || '无'}`,
+    `### Patrones detectados`,
+    `- **Estilo de arquitectura**: ${context.patterns.architecture}`,
+    `- **Estilo de código**: ${context.patterns.codeStyle.join(', ') || 'Sin configurar'}`,
+    `- **Convenciones**: ${context.patterns.conventions.join(', ') || 'Ninguna'}`,
   ];
   
   // 如果 project.md 不存在，生成模板
@@ -244,41 +244,41 @@ function formatStaticContext(context: ProjectContext, projectMd: string | null):
       '',
       `---`,
       '',
-      `## project.md 模板建议`,
+      `## Plantilla sugerida para project.md`,
       '',
-      `你尚未创建 \`openspec/project.md\`。以下是基于静态分析的推荐模板：`,
+      `Aún no has creado \`openspec/project.md\`. Aquí tienes una plantilla recomendada basada en el análisis estático:`,
       '',
       '```markdown',
       `# ${context.projectName}`,
       '',
-      `## 项目概述`,
-      `<!-- 描述项目的目的和主要功能 -->`,
+      `## Resumen del proyecto`,
+      `<!-- Describe el propósito y funcionalidad principal del proyecto -->`,
       '',
-      `## 技术栈`,
-      `- **主要语言**: ${primaryLang?.name || '未知'}`,
-      `- **框架**: ${context.stack.frameworks.join(', ') || '无'}`,
-      `- **包管理器**: ${context.stack.packageManager}`,
-      context.stack.testFramework ? `- **测试框架**: ${context.stack.testFramework}` : '',
+      `## Tecnologías`,
+      `- **Lenguaje principal**: ${primaryLang?.name || 'Desconocido'}`,
+      `- **Frameworks**: ${context.stack.frameworks.join(', ') || 'Ninguno'}`,
+      `- **Gestor de paquetes**: ${context.stack.packageManager}`,
+      context.stack.testFramework ? `- **Framework de pruebas**: ${context.stack.testFramework}` : '',
       '',
-      `## 项目结构`,
+      `## Estructura del proyecto`,
       ...context.structure.mainDirectories.slice(0, 6).map(d => `- \`${d.name}/\` - ${d.purpose}`),
       '',
-      `## 开发约定`,
-      `<!-- 描述编码规范、提交消息格式等 -->`,
+      `## Convenciones de desarrollo`,
+      `<!-- Describe estándares de codificación, formato de mensajes de commit, etc. -->`,
       '',
-      `## 外部依赖`,
-      `<!-- 列出重要的外部服务或 API -->`,
+      `## Dependencias externas`,
+      `<!-- Enumera servicios o APIs externas importantes -->`,
       '```',
       '',
-      `> 💡 将上述内容保存到 \`openspec/project.md\`，然后再次运行分析获取更好的结果。`
+      `> 💡 Guarda el contenido anterior en \`openspec/project.md\` y vuelve a ejecutar el análisis para obtener mejores resultados.`
     );
   } else {
     sections.push(
       '',
       `---`,
       '',
-      `## project.md 状态`,
-      `✅ 已存在 \`openspec/project.md\`（${projectMd.length} 字符）`,
+      `## Estado de project.md`,
+      `✅ \`openspec/project.md\` ya existe (${projectMd.length} caracteres)`,
     );
   }
   

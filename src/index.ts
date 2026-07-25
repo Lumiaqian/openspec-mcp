@@ -36,24 +36,29 @@ import { SpecCritic } from './core/spec-critic.js';
 import { ContextAnalyzer } from './core/context-analyzer.js';
 import { RevisionManager } from './core/revision-manager.js';
 import { VERSION } from './utils/version.js';
+import { createProjectContext } from './core/project-context.js';
+import { registerProjectTools } from './server/tools/project.js';
 
 /**
  * 创建并配置 MCP Server
  */
-function createMcpServer(cwd: string): McpServer {
+function createMcpServer(initialCwd: string): McpServer {
   const server = new McpServer({
     name: 'openspec-mcp',
     version: VERSION,
   });
 
+  // Create shared project context
+  const ref = createProjectContext(initialCwd);
+
   // 创建核心模块实例
-  const cli = new OpenSpecCli({ cwd });
-  const approvalManager = new ApprovalManager({ cwd });
-  const reviewManager = new ReviewManager({ cwd });
-  const templateManager = new TemplateManager({ cwd });
-  const hooksManager = new HooksManager({ cwd });
-  const proposalGenerator = new ProposalGenerator({ cwd });
-  const revisionManager = new RevisionManager({ cwd });
+  const cli = new OpenSpecCli({ ref });
+  const approvalManager = new ApprovalManager({ ref });
+  const reviewManager = new ReviewManager({ ref });
+  const templateManager = new TemplateManager({ ref });
+  const hooksManager = new HooksManager({ ref });
+  const proposalGenerator = new ProposalGenerator({ ref });
+  const revisionManager = new RevisionManager({ ref });
 
   // 注册所有工具
   registerGuidesTools(server, cli);
@@ -68,20 +73,23 @@ function createMcpServer(cwd: string): McpServer {
   registerGeneratorTools(server, proposalGenerator);
 
   // 跨服务文档管理
-  const crossServiceManager = new CrossServiceManager({ cwd });
+  const crossServiceManager = new CrossServiceManager({ ref });
   registerCrossServiceTools(server, crossServiceManager);
 
   // 规格评审
-  const specCritic = new SpecCritic({ cwd });
+  const specCritic = new SpecCritic({ ref });
   registerCritiqueTools(server, specCritic);
 
   // 项目上下文分析
-  const contextAnalyzer = new ContextAnalyzer({ cwd });
+  const contextAnalyzer = new ContextAnalyzer({ ref });
   registerContextTools(server, contextAnalyzer);
   registerAIContextTools(server, contextAnalyzer);
 
   // 设计变更记录
   registerRevisionTools(server, revisionManager);
+
+  // Register runtime project path tool
+  registerProjectTools(server, ref);
 
   return server;
 }

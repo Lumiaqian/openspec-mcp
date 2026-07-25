@@ -6,10 +6,12 @@
 import type { FastifyInstance } from 'fastify';
 import type { ApiContext } from '../server.js';
 import { ContextAnalyzer } from '../../core/context-analyzer.js';
+import { createProjectContext } from '../../core/project-context.js';
 
 export function registerContextRoutes(fastify: FastifyInstance, ctx: ApiContext): void {
   // 创建 ContextAnalyzer 实例
-  const analyzer = new ContextAnalyzer({ cwd: ctx.cwd });
+  const ref = createProjectContext(ctx.cwd);
+  const analyzer = new ContextAnalyzer({ ref });
 
   /**
    * GET /api/context/analyze - 分析项目上下文

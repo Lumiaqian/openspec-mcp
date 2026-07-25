@@ -16,10 +16,10 @@ export function registerCritiqueTools(server: McpServer, critic: SpecCritic): vo
   server.registerTool(
     'openspec_critique_proposal',
     {
-      description: '评审 proposal 或 design 文档，识别潜在问题（完整性、可行性、安全、边界条件、清晰度）',
+      description: 'Revisa documentos proposal o design, identificando problemas potenciales (integridad, factibilidad, seguridad, casos límite, claridad)',
       inputSchema: {
-        changeName: z.string().describe('变更 ID'),
-        documentType: z.enum(['proposal', 'design', 'all']).optional().describe('文档类型，默认 proposal'),
+        changeName: z.string().describe('ID del cambio'),
+        documentType: z.enum(['proposal', 'design', 'all']).optional().describe('Tipo de documento, por defecto proposal'),
       },
     },
     async ({ changeName, documentType = 'proposal' }): Promise<{ content: Array<{ type: 'text'; text: string }> }> => {
@@ -47,7 +47,7 @@ export function registerCritiqueTools(server: McpServer, critic: SpecCritic): vo
         return {
           content: [{
             type: 'text',
-            text: `评审失败: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            text: `Error en la revisión: ${error instanceof Error ? error.message : 'Unknown error'}`,
           }],
         };
       }
@@ -58,11 +58,11 @@ export function registerCritiqueTools(server: McpServer, critic: SpecCritic): vo
   server.registerTool(
     'openspec_get_critique_result',
     {
-      description: '获取变更的评审结果（最新或历史记录）',
+      description: 'Obtiene resultados de revisión del cambio (último o histórico)',
       inputSchema: {
-        changeName: z.string().describe('变更 ID'),
-        latest: z.boolean().optional().describe('只获取最新结果，默认 true'),
-        limit: z.number().optional().describe('历史记录数量限制（仅当 latest=false 时有效），默认 5'),
+        changeName: z.string().describe('ID del cambio'),
+        latest: z.boolean().optional().describe('Obtener solo el último resultado, por defecto true'),
+        limit: z.number().optional().describe('Límite de registros históricos (solo cuando latest=false), por defecto 5'),
       },
     },
     async ({ changeName, latest = true, limit = 5 }): Promise<{ content: Array<{ type: 'text'; text: string }> }> => {
@@ -72,10 +72,10 @@ export function registerCritiqueTools(server: McpServer, critic: SpecCritic): vo
           const result = await critic.getLatestCritique(changeName);
           
           if (!result) {
-            return {
-              content: [{ type: 'text', text: `没有找到 ${changeName} 的评审记录，请先运行 openspec_critique_proposal` }],
-            };
-          }
+                return {
+                  content: [{ type: 'text', text: `No se encontraron registros de revisión para ${changeName}. Ejecuta openspec_critique_proposal primero` }],
+                };
+              }
           
           const output = formatCritiqueResult(result);
           return { content: [{ type: 'text', text: output }] };
@@ -86,25 +86,25 @@ export function registerCritiqueTools(server: McpServer, critic: SpecCritic): vo
           
           if (limited.length === 0) {
             return {
-              content: [{ type: 'text', text: `没有找到 ${changeName} 的评审历史` }],
+              content: [{ type: 'text', text: `No se encontró historial de revisión para ${changeName}` }],
             };
           }
           
           const output = limited.map((r: CritiqueResult, i: number) => {
             return `## ${i + 1}. ${r.documentType} (${r.createdAt})
-- 总分: ${r.overallScore}/10
-- 问题: ${r.summary.total} (Critical: ${r.summary.critical}, Warning: ${r.summary.warning}, Info: ${r.summary.info})`;
+- Puntaje total: ${r.overallScore}/10
+- Problemas: ${r.summary.total} (Critical: ${r.summary.critical}, Warning: ${r.summary.warning}, Info: ${r.summary.info})`;
           }).join('\n\n');
           
           return {
-            content: [{ type: 'text', text: `# ${changeName} 评审历史\n\n${output}` }],
+            content: [{ type: 'text', text: `No se encontró historial de revisión para ${changeName}` }],
           };
         }
       } catch (error) {
         return {
           content: [{
             type: 'text',
-            text: `获取失败: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            text: `Error al obtener: ${error instanceof Error ? error.message : 'Unknown error'}`,
           }],
         };
       }
@@ -119,27 +119,27 @@ function formatCritiqueResult(result: CritiqueResult): string {
   const lines: string[] = [];
   
   // 标题和总分
-  lines.push(`# 📋 ${result.changeName} 评审报告`);
+  lines.push(`# 📋 Reporte de revisión: ${result.changeName}`);
   lines.push('');
-  lines.push(`- **文档类型**: ${result.documentType}`);
-  lines.push(`- **评审时间**: ${result.createdAt}`);
-  lines.push(`- **总分**: ${getScoreEmoji(result.overallScore)} **${result.overallScore}/10**`);
+  lines.push(`- **Tipo de documento**: ${result.documentType}`);
+  lines.push(`- **Fecha de revisión**: ${result.createdAt}`);
+  lines.push(`- **Puntaje total**: ${getScoreEmoji(result.overallScore)} **${result.overallScore}/10**`);
   lines.push('');
   
   // 统计摘要
-  lines.push('## 📊 统计摘要');
+  lines.push('## 📊 Resumen estadístico');
   lines.push('');
-  lines.push(`| 类别 | 数量 |`);
-  lines.push(`|------|------|`);
+  lines.push(`| Categoría | Cantidad |`);
+  lines.push(`|-----------|:--------:|`);
   lines.push(`| 🔴 Critical | ${result.summary.critical} |`);
   lines.push(`| 🟡 Warning | ${result.summary.warning} |`);
   lines.push(`| 🔵 Info | ${result.summary.info} |`);
-  lines.push(`| **总计** | **${result.summary.total}** |`);
+  lines.push(`| **Total** | **${result.summary.total}** |`);
   lines.push('');
   
   // 按类别分组展示问题
   if (result.critiques.length > 0) {
-    lines.push('## 🔍 发现的问题');
+    lines.push('## 🔍 Problemas encontrados');
     lines.push('');
     
     const bySeverity = {
@@ -156,26 +156,26 @@ function formatCritiqueResult(result: CritiqueResult): string {
       for (const c of critiques) {
         lines.push(`### ${emoji} ${c.title}`);
         lines.push('');
-        lines.push(`**类别**: ${getCategoryLabel(c.category)}`);
+        lines.push(`**Categoría**: ${getCategoryLabel(c.category)}`);
         lines.push('');
         lines.push(c.description);
         if (c.suggestion) {
           lines.push('');
-          lines.push(`> 💡 **建议**: ${c.suggestion}`);
+          lines.push(`> 💡 **Sugerencia**: ${c.suggestion}`);
         }
         lines.push('');
       }
     }
   } else {
-    lines.push('## ✅ 没有发现问题');
+    lines.push('## ✅ No se encontraron problemas');
     lines.push('');
-    lines.push('文档通过所有检查规则。');
+    lines.push('El documento pasa todas las reglas de revisión.');
     lines.push('');
   }
   
   // 综合建议
   if (result.suggestions.length > 0) {
-    lines.push('## 💡 改进建议');
+    lines.push('## 💡 Sugerencias de mejora');
     lines.push('');
     for (const s of result.suggestions) {
       lines.push(`- ${s}`);
@@ -195,11 +195,11 @@ function getScoreEmoji(score: number): string {
 
 function getCategoryLabel(category: string): string {
   const labels: Record<string, string> = {
-    completeness: '完整性',
-    feasibility: '技术可行性',
-    security: '安全考量',
-    edge_case: '边界条件',
-    clarity: '清晰度',
+    completeness: 'Integridad',
+    feasibility: 'Factibilidad técnica',
+    security: 'Consideraciones de seguridad',
+    edge_case: 'Casos límite',
+    clarity: 'Claridad',
   };
   return labels[category] || category;
 }

@@ -6,6 +6,7 @@
 
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import type { ProjectContextRef } from './project-context.js';
 
 /**
  * 语言信息
@@ -97,70 +98,70 @@ const LANGUAGE_EXTENSIONS: Record<string, string> = {
 
 // 目录用途推断
 const DIRECTORY_PURPOSES: Record<string, string> = {
-  src: '源代码',
-  lib: '库代码',
-  pkg: 'Go 包',
-  internal: '内部模块',
-  cmd: '命令行入口',
-  api: 'API 接口',
-  server: '服务器代码',
-  client: '客户端代码',
-  web: 'Web 前端',
-  app: '应用入口',
-  components: 'UI 组件',
-  pages: '页面组件',
-  routes: '路由定义',
-  controllers: '控制器',
-  services: '服务层',
-  models: '数据模型',
-  utils: '工具函数',
-  helpers: '辅助函数',
-  hooks: 'React Hooks',
-  store: '状态管理',
-  types: '类型定义',
-  tests: '测试文件',
-  __tests__: '测试文件',
-  test: '测试文件',
-  spec: '规格文件',
-  docs: '文档',
-  scripts: '脚本',
-  config: '配置文件',
-  assets: '静态资源',
-  public: '公共资源',
-  static: '静态文件',
-  dist: '构建输出',
-  build: '构建输出',
-  out: '输出目录',
-  node_modules: 'npm 依赖',
-  vendor: '第三方依赖',
+  src: 'Código fuente',
+  lib: 'Librerías',
+  pkg: 'Paquetes Go',
+  internal: 'Módulos internos',
+  cmd: 'CLI de entrada',
+  api: 'Interfaz API',
+  server: 'Código del servidor',
+  client: 'Código del cliente',
+  web: 'Frontend Web',
+  app: 'Punto de entrada',
+  components: 'Componentes UI',
+  pages: 'Componentes de página',
+  routes: 'Definición de rutas',
+  controllers: 'Controladores',
+  services: 'Capa de servicios',
+  models: 'Modelos de datos',
+  utils: 'Funciones utilitarias',
+  helpers: 'Funciones auxiliares',
+  hooks: 'Hooks de React',
+  store: 'Gestión de estado',
+  types: 'Definiciones de tipos',
+  tests: 'Pruebas',
+  __tests__: 'Pruebas',
+  test: 'Pruebas',
+  spec: 'Archivos de especificación',
+  docs: 'Documentación',
+  scripts: 'Scripts',
+  config: 'Configuración',
+  assets: 'Recursos estáticos',
+  public: 'Recursos públicos',
+  static: 'Archivos estáticos',
+  dist: 'Salida de compilación',
+  build: 'Salida de compilación',
+  out: 'Directorio de salida',
+  node_modules: 'Dependencias npm',
+  vendor: 'Dependencias de terceros',
 };
 
 /**
  * ContextAnalyzer 主类
  */
 export class ContextAnalyzer {
-  private cwd: string;
+  private ref: ProjectContextRef;
   private cachedContext: ProjectContext | null = null;
 
-  constructor(options?: { cwd?: string }) {
-    this.cwd = options?.cwd || process.cwd();
+  constructor(options: { ref: ProjectContextRef }) {
+    this.ref = options.ref;
   }
 
   /**
    * 获取缓存目录
    */
   private getCacheDir(): string {
-    return path.join(this.cwd, 'openspec', '.cache');
+    return path.join(this.ref.current, 'openspec', '.cache');
   }
 
   /**
    * 分析项目上下文
    */
   async analyze(): Promise<ProjectContext> {
-    const projectName = path.basename(this.cwd);
+    const projectName = path.basename(this.ref.current);
     
     // 获取项目文件列表（排除常见忽略目录）
-    const files = await this.scanFiles(this.cwd);
+    const files = await this.scanFiles(this.ref.current);
     
     // 分析语言分布
     const languages = await this.analyzeLanguages(files);
@@ -183,7 +184,7 @@ export class ContextAnalyzer {
       patterns,
       stats,
       analyzedAt: new Date().toISOString(),
-      projectRoot: this.cwd,
+      projectRoot: this.ref.current,
       projectName,
     };
     
@@ -275,7 +276,7 @@ export class ContextAnalyzer {
         
         // 估算行数（实际计数会太慢）
         try {
-          const stat = await fs.stat(path.join(this.cwd, file));
+          const stat = await fs.stat(path.join(this.ref.current, file));
           const estimatedLines = Math.round(stat.size / 40); // 估算每行 40 字符
           langStats[lang].lines += estimatedLines;
           totalLines += estimatedLines;
@@ -306,7 +307,7 @@ export class ContextAnalyzer {
     const entryPoints: string[] = [];
     
     try {
-      const entries = await fs.readdir(this.cwd, { withFileTypes: true });
+      const entries = await fs.readdir(this.ref.current, { withFileTypes: true });
       
       for (const entry of entries) {
         const name = entry.name;
@@ -322,12 +323,12 @@ export class ContextAnalyzer {
             entryPoints.push(name);
           }
         } else if (entry.isDirectory() && !name.startsWith('.') && !['node_modules', 'vendor'].includes(name)) {
-          const purpose = DIRECTORY_PURPOSES[name.toLowerCase()] || '项目目录';
+          const purpose = DIRECTORY_PURPOSES[name.toLowerCase()] || 'Directorio del proyecto';
           
           // 计算文件数
           let fileCount = 0;
           try {
-            const subFiles = await this.scanFiles(path.join(this.cwd, name));
+            const subFiles = await this.scanFiles(path.join(this.ref.current, name));
             fileCount = subFiles.length;
           } catch {
             // 忽略
@@ -349,7 +350,7 @@ export class ContextAnalyzer {
     
     // 检查 src 目录下的入口点
     try {
-      const srcEntries = await fs.readdir(path.join(this.cwd, 'src'), { withFileTypes: true });
+      const srcEntries = await fs.readdir(path.join(this.ref.current, 'src'), { withFileTypes: true });
       for (const entry of srcEntries) {
         if (entry.isFile() && ['index.ts', 'index.js', 'main.ts', 'main.js'].includes(entry.name)) {
           entryPoints.push(`src/${entry.name}`);
@@ -377,7 +378,7 @@ export class ContextAnalyzer {
     
     // 检测 package.json
     try {
-      const pkgContent = await fs.readFile(path.join(this.cwd, 'package.json'), 'utf-8');
+      const pkgContent = await fs.readFile(path.join(this.ref.current, 'package.json'), 'utf-8');
       const pkg = JSON.parse(pkgContent);
       const allDeps = { ...pkg.dependencies, ...pkg.devDependencies };
       
@@ -412,7 +413,7 @@ export class ContextAnalyzer {
     
     // 检测 go.mod
     try {
-      await fs.access(path.join(this.cwd, 'go.mod'));
+      await fs.access(path.join(this.ref.current, 'go.mod'));
       frameworks.push('Go');
       packageManager = 'go modules';
     } catch {
@@ -421,11 +422,11 @@ export class ContextAnalyzer {
     
     // 检测 requirements.txt 或 pyproject.toml
     try {
-      await fs.access(path.join(this.cwd, 'requirements.txt'));
+      await fs.access(path.join(this.ref.current, 'requirements.txt'));
       packageManager = 'pip';
     } catch {
       try {
-        await fs.access(path.join(this.cwd, 'pyproject.toml'));
+        await fs.access(path.join(this.ref.current, 'pyproject.toml'));
         packageManager = 'poetry/pip';
       } catch {
         // 不是 Python 项目
@@ -451,7 +452,7 @@ export class ContextAnalyzer {
     
     // 检测架构类型
     try {
-      const entries = await fs.readdir(this.cwd, { withFileTypes: true });
+      const entries = await fs.readdir(this.ref.current, { withFileTypes: true });
       const dirNames = entries.filter(e => e.isDirectory()).map(e => e.name);
       
       if (dirNames.includes('packages') || dirNames.includes('apps')) {
@@ -482,7 +483,7 @@ export class ContextAnalyzer {
     
     for (const [file, tool] of styleFiles) {
       try {
-        await fs.access(path.join(this.cwd, file));
+        await fs.access(path.join(this.ref.current, file));
         if (!codeStyle.includes(tool)) {
           codeStyle.push(tool);
         }
@@ -493,17 +494,17 @@ export class ContextAnalyzer {
     
     // 检测约定
     try {
-      await fs.access(path.join(this.cwd, '.github'));
+      await fs.access(path.join(this.ref.current, '.github'));
       conventions.push('GitHub workflows');
     } catch { /* 忽略 */ }
     
     try {
-      await fs.access(path.join(this.cwd, 'openspec'));
+      await fs.access(path.join(this.ref.current, 'openspec'));
       conventions.push('OpenSpec');
     } catch { /* 忽略 */ }
     
     try {
-      await fs.access(path.join(this.cwd, '.husky'));
+      await fs.access(path.join(this.ref.current, '.husky'));
       conventions.push('Husky git hooks');
     } catch { /* 忽略 */ }
     
@@ -548,7 +549,7 @@ export class ContextAnalyzer {
    * 获取 project.md 内容
    */
   async getProjectMd(): Promise<string | null> {
-    const projectMdPath = path.join(this.cwd, 'openspec', 'project.md');
+    const projectMdPath = path.join(this.ref.current, 'openspec', 'project.md');
     try {
       return await fs.readFile(projectMdPath, 'utf-8');
     } catch {
@@ -570,7 +571,7 @@ export class ContextAnalyzer {
     
     for (const file of filesToCheck) {
       try {
-        const content = await fs.readFile(path.join(this.cwd, file), 'utf-8');
+        const content = await fs.readFile(path.join(this.ref.current, file), 'utf-8');
         keyFiles[file] = content.slice(0, 2000); // 限制长度
       } catch {
         // 文件不存在，跳过

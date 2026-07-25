@@ -11,23 +11,24 @@ import type {
   CrossServiceDocument,
   CrossServiceInfo,
 } from '../types/openspec.js';
+import type { ProjectContextRef } from './project-context.js';
 
 export interface CrossServiceManagerOptions {
-  cwd?: string;
+  ref: ProjectContextRef;
 }
 
 export class CrossServiceManager {
-  private cwd: string;
+  private ref: ProjectContextRef;
 
-  constructor(options?: CrossServiceManagerOptions) {
-    this.cwd = options?.cwd || process.cwd();
+  constructor(options: CrossServiceManagerOptions) {
+    this.ref = options.ref;
   }
 
   /**
    * 获取 openspec 目录路径
    */
   private getOpenSpecDir(): string {
-    return path.join(this.cwd, 'openspec');
+    return path.join(this.ref.current, 'openspec');
   }
 
   /**
@@ -106,7 +107,7 @@ export class CrossServiceManager {
 
     // 允许访问父目录中的 .cross-service（worktree 场景）
     // 但不允许无限向上遍历
-    const relativeFromCwd = path.relative(this.cwd, resolvedTarget);
+    const relativeFromCwd = path.relative(this.ref.current, resolvedTarget);
     const upLevels = (relativeFromCwd.match(/\.\.\//g) || []).length;
 
     // 最多允许向上 5 级（足够覆盖 worktree 场景）
@@ -140,7 +141,7 @@ export class CrossServiceManager {
       const rootPath = path.resolve(changeDir, config.rootPath);
 
       // 安全检查
-      if (!this.isPathSafe(this.cwd, rootPath)) {
+      if (!this.isPathSafe(this.ref.current, rootPath)) {
         console.error('Path traversal detected, rejecting:', rootPath);
         return [];
       }
@@ -251,7 +252,7 @@ export class CrossServiceManager {
     const rootPath = path.resolve(changeDir, config.rootPath);
 
     // 安全检查
-    if (!this.isPathSafe(this.cwd, rootPath)) {
+    if (!this.isPathSafe(this.ref.current, rootPath)) {
       console.error('Path traversal detected, rejecting snapshot:', rootPath);
       return false;
     }

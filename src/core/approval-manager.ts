@@ -6,23 +6,24 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import type { ApprovalRecord, ApprovalStatus } from '../types/openspec.js';
+import type { ProjectContextRef } from './project-context.js';
 
 export interface ApprovalManagerOptions {
-  cwd?: string;
+  ref: ProjectContextRef;
 }
 
 export class ApprovalManager {
-  private cwd: string;
+  private ref: ProjectContextRef;
 
-  constructor(options?: ApprovalManagerOptions) {
-    this.cwd = options?.cwd || process.cwd();
+  constructor(options: ApprovalManagerOptions) {
+    this.ref = options.ref;
   }
 
   /**
    * 获取审批目录路径
    */
   private getApprovalsDir(): string {
-    return path.join(this.cwd, 'openspec', 'approvals');
+    return path.join(this.ref.current, 'openspec', 'approvals');
   }
 
   /**

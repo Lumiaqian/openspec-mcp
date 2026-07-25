@@ -6,26 +6,27 @@
 import chokidar, { FSWatcher } from 'chokidar';
 import * as path from 'path';
 import { EventEmitter } from 'events';
+import type { ProjectContextRef } from './project-context.js';
 
 export interface FileWatcherOptions {
-  cwd: string;
+  ref: ProjectContextRef;
 }
 
 export class FileWatcher extends EventEmitter {
-  private cwd: string;
+  private ref: ProjectContextRef;
   private watcher: FSWatcher | null = null;
   private crossServicePaths: Set<string> = new Set();
 
   constructor(options: FileWatcherOptions) {
     super();
-    this.cwd = options.cwd;
+    this.ref = options.ref;
   }
 
   /**
    * 获取监控目录路径
    */
   private getWatchPath(): string {
-    return path.join(this.cwd, 'openspec');
+    return path.join(this.ref.current, 'openspec');
   }
 
   /**
@@ -91,7 +92,7 @@ export class FileWatcher extends EventEmitter {
    */
   private handleChange(event: string, filePath: string): void {
     // 获取相对路径
-    const relativePath = path.relative(this.cwd, filePath);
+    const relativePath = path.relative(this.ref.current, filePath);
 
     // 解析文件类型
     const fileType = this.getFileType(relativePath);

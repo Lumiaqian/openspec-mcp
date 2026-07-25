@@ -5,6 +5,7 @@
 
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import type { ProjectContextRef } from './project-context.js';
 
 export interface TemplateFiles {
   proposal: string;
@@ -168,17 +169,17 @@ Potential risks and mitigation strategies.
 };
 
 export class TemplateManager {
-  private cwd: string;
+  private ref: ProjectContextRef;
 
-  constructor(options?: { cwd?: string }) {
-    this.cwd = options?.cwd || process.cwd();
+  constructor(options: { ref: ProjectContextRef }) {
+    this.ref = options.ref;
   }
 
   /**
    * 获取 openspec 目录
    */
   private getOpenSpecDir(): string {
-    return path.join(this.cwd, 'openspec');
+    return path.join(this.ref.current, 'openspec');
   }
 
   /**

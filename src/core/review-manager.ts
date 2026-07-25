@@ -12,6 +12,7 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { randomUUID } from 'crypto';
+import type { ProjectContextRef } from './project-context.js';
 
 /**
  * 评审目标类型
@@ -85,17 +86,17 @@ export interface ReviewSummary {
 }
 
 export class ReviewManager {
-  private cwd: string;
+  private ref: ProjectContextRef;
 
-  constructor(options?: { cwd?: string }) {
-    this.cwd = options?.cwd || process.cwd();
+  constructor(options: { ref: ProjectContextRef }) {
+    this.ref = options.ref;
   }
 
   /**
    * 获取评审存储目录
    */
   private getReviewsDir(): string {
-    return path.join(this.cwd, 'openspec', 'reviews');
+    return path.join(this.ref.current, 'openspec', 'reviews');
   }
 
   /**

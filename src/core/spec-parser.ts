@@ -5,6 +5,7 @@
 
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import type { ProjectContextRef } from './project-context.js';
 
 export interface SpecNode {
   id: string;
@@ -22,17 +23,17 @@ export interface DependencyGraph {
 }
 
 export class SpecParser {
-  private cwd: string;
+  private ref: ProjectContextRef;
 
-  constructor(options?: { cwd?: string }) {
-    this.cwd = options?.cwd || process.cwd();
+  constructor(options: { ref: ProjectContextRef }) {
+    this.ref = options.ref;
   }
 
   /**
    * 获取 specs 目录
    */
   private getSpecsDir(): string {
-    return path.join(this.cwd, 'openspec', 'specs');
+    return path.join(this.ref.current, 'openspec', 'specs');
   }
 
   /**

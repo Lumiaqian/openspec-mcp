@@ -16,9 +16,9 @@ export function registerContextTools(server: McpServer, analyzer: ContextAnalyze
   server.registerTool(
     'openspec_analyze_context',
     {
-      description: '分析项目上下文（技术栈、目录结构、代码模式）',
+      description: 'Analiza el contexto del proyecto (tecnologías, estructura de directorios, patrones de código)',
       inputSchema: {
-        refresh: z.boolean().optional().describe('是否强制刷新缓存，默认 false'),
+        refresh: z.boolean().optional().describe('Forzar actualización de caché, por defecto false'),
       },
     },
     async ({ refresh = false }): Promise<{ content: Array<{ type: 'text'; text: string }> }> => {
@@ -36,7 +36,7 @@ export function registerContextTools(server: McpServer, analyzer: ContextAnalyze
         return {
           content: [{
             type: 'text',
-            text: `分析失败: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            text: `Error en el análisis: ${error instanceof Error ? error.message : 'Unknown error'}`,
           }],
         };
       }
@@ -51,20 +51,20 @@ function formatContext(ctx: ProjectContext): string {
   const lines: string[] = [];
   
   // 标题
-  lines.push(`# 📊 项目上下文: ${ctx.projectName}`);
+  lines.push(`# 📊 Contexto del proyecto: ${ctx.projectName}`);
   lines.push('');
-  lines.push(`> 分析时间: ${ctx.analyzedAt}`);
-  lines.push(`> 项目路径: ${ctx.projectRoot}`);
+  lines.push(`> Analizado el: ${ctx.analyzedAt}`);
+  lines.push(`> Ruta del proyecto: ${ctx.projectRoot}`);
   lines.push('');
   
   // 技术栈
-  lines.push('## 🛠️ 技术栈');
+  lines.push('## 🛠️ Tecnologías');
   lines.push('');
   
   // 语言分布
-  lines.push('### 语言分布');
+  lines.push('### Distribución de lenguajes');
   lines.push('');
-  lines.push('| 语言 | 占比 | 文件数 |');
+  lines.push('| Lenguaje | % | Archivos |');
   lines.push('|------|------|--------|');
   for (const lang of ctx.stack.languages.slice(0, 6)) {
     const bar = '█'.repeat(Math.round(lang.percentage / 10)) + '░'.repeat(10 - Math.round(lang.percentage / 10));
@@ -74,23 +74,23 @@ function formatContext(ctx: ProjectContext): string {
   
   // 框架和工具
   if (ctx.stack.frameworks.length > 0) {
-    lines.push(`**框架**: ${ctx.stack.frameworks.join(', ')}`);
+    lines.push(`**Frameworks**: ${ctx.stack.frameworks.join(', ')}`);
   }
   if (ctx.stack.buildTools.length > 0) {
-    lines.push(`**构建工具**: ${ctx.stack.buildTools.join(', ')}`);
+    lines.push(`**Herramientas de compilación**: ${ctx.stack.buildTools.join(', ')}`);
   }
-  lines.push(`**包管理器**: ${ctx.stack.packageManager}`);
+  lines.push(`**Gestor de paquetes**: ${ctx.stack.packageManager}`);
   if (ctx.stack.testFramework) {
-    lines.push(`**测试框架**: ${ctx.stack.testFramework}`);
+    lines.push(`**Framework de pruebas**: ${ctx.stack.testFramework}`);
   }
   lines.push('');
   
   // 目录结构
-  lines.push('## 📁 目录结构');
+  lines.push('## 📁 Estructura de directorios');
   lines.push('');
   
   if (ctx.structure.mainDirectories.length > 0) {
-    lines.push('| 目录 | 用途 | 文件数 |');
+    lines.push('| Directorio | Propósito | Archivos |');
     lines.push('|------|------|--------|');
     for (const dir of ctx.structure.mainDirectories.slice(0, 8)) {
       lines.push(`| \`${dir.name}/\` | ${dir.purpose} | ${dir.fileCount} |`);
@@ -99,27 +99,27 @@ function formatContext(ctx: ProjectContext): string {
   }
   
   if (ctx.structure.entryPoints.length > 0) {
-    lines.push(`**入口点**: ${ctx.structure.entryPoints.map((e: string) => `\`${e}\``).join(', ')}`);
+    lines.push(`**Puntos de entrada**: ${ctx.structure.entryPoints.map((e: string) => `\`${e}\``).join(', ')}`);
     lines.push('');
   }
   
   // 代码模式
-  lines.push('## 🧩 代码模式');
+  lines.push('## 🧩 Patrones de código');
   lines.push('');
-  lines.push(`**架构**: ${ctx.patterns.architecture}`);
+  lines.push(`**Arquitectura**: ${ctx.patterns.architecture}`);
   if (ctx.patterns.codeStyle.length > 0) {
-    lines.push(`**代码风格**: ${ctx.patterns.codeStyle.join(', ')}`);
+    lines.push(`**Estilo de código**: ${ctx.patterns.codeStyle.join(', ')}`);
   }
   if (ctx.patterns.conventions.length > 0) {
-    lines.push(`**项目约定**: ${ctx.patterns.conventions.join(', ')}`);
+    lines.push(`**Convenciones del proyecto**: ${ctx.patterns.conventions.join(', ')}`);
   }
   lines.push('');
   
   // 统计
-  lines.push('## 📈 统计');
+  lines.push('## 📈 Estadísticas');
   lines.push('');
-  lines.push(`- **总文件数**: ${ctx.stats.totalFiles.toLocaleString()}`);
-  lines.push(`- **预估总行数**: ${ctx.stats.totalLines.toLocaleString()}`);
+  lines.push(`- **Total de archivos**: ${ctx.stats.totalFiles.toLocaleString()}`);
+  lines.push(`- **Líneas totales estimadas**: ${ctx.stats.totalLines.toLocaleString()}`);
   lines.push('');
   
   return lines.join('\n');

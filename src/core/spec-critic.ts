@@ -12,6 +12,7 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { randomUUID } from 'crypto';
+import type { ProjectContextRef } from './project-context.js';
 
 /**
  * 评审类别
@@ -86,11 +87,11 @@ interface CritiqueMatch {
  * SpecCritic 主类
  */
 export class SpecCritic {
-  private cwd: string;
+  private ref: ProjectContextRef;
   private rules: CritiqueRule[];
 
-  constructor(options?: { cwd?: string }) {
-    this.cwd = options?.cwd || process.cwd();
+  constructor(options: { ref: ProjectContextRef }) {
+    this.ref = options.ref;
     this.rules = this.initializeRules();
   }
 
@@ -98,7 +99,7 @@ export class SpecCritic {
    * 获取评审结果存储目录
    */
   private getCritiquesDir(): string {
-    return path.join(this.cwd, 'openspec', 'critiques');
+    return path.join(this.ref.current, 'openspec', 'critiques');
   }
 
   /**
@@ -106,7 +107,7 @@ export class SpecCritic {
    */
   private getChangeDir(changeName: string): string {
     const safeId = this.ensureSafeId(changeName);
-    return path.join(this.cwd, 'openspec', 'changes', safeId);
+    return path.join(this.ref.current, 'openspec', 'changes', safeId);
   }
 
   /**
@@ -305,19 +306,19 @@ export class SpecCritic {
     }
     
     if ((byCategory.get('completeness')?.length || 0) > 0) {
-      suggestions.push('补充缺失的文档章节，确保问题描述、解决方案和影响范围完整');
+      suggestions.push('Agrega las secciones faltantes del documento, asegurando que la descripción del problema, la solución y el alcance estén completos');
     }
     
     if ((byCategory.get('security')?.length || 0) > 0) {
-      suggestions.push('审查安全相关设计，确保认证、授权和数据验证机制到位');
+      suggestions.push('Revisa el diseño de seguridad, asegurando que los mecanismos de autenticación, autorización y validación de datos estén implementados');
     }
     
     if ((byCategory.get('edge_case')?.length || 0) > 0) {
-      suggestions.push('增加边界条件和错误处理的说明');
+      suggestions.push('Agrega una sección sobre casos límite y manejo de errores');
     }
     
     if ((byCategory.get('clarity')?.length || 0) > 0) {
-      suggestions.push('改进文档清晰度，统一术语使用');
+      suggestions.push('Mejora la claridad del documento, unificando el uso de la terminología');
     }
     
     return suggestions;
@@ -386,8 +387,8 @@ export class SpecCritic {
         id: 'missing-problem',
         category: 'completeness',
         severity: 'critical',
-        title: '缺少问题描述',
-        description: '文档应包含清晰的问题描述章节',
+        title: 'Falta descripción del problema',
+        description: 'El documento debe incluir una sección clara que describa el problema',
         check: (content, sections) => {
           const hasProb = content.toLowerCase().includes('problem') ||
                           content.toLowerCase().includes('issue') ||
@@ -395,15 +396,15 @@ export class SpecCritic {
                           content.toLowerCase().includes('问题') ||
                           sections.has('problem') ||
                           sections.has('background');
-          return { matched: !hasProb, suggestion: '添加 "Problem" 或 "背景" 章节描述要解决的问题' };
+          return { matched: !hasProb, suggestion: 'Agrega una sección "Problem" o "Antecedentes" que describa el problema a resolver' };
         },
       },
       {
         id: 'missing-solution',
         category: 'completeness',
         severity: 'critical',
-        title: '缺少解决方案',
-        description: '文档应包含解决方案描述',
+        title: 'Falta solución',
+        description: 'El documento debe incluir una descripción de la solución',
         check: (content, sections) => {
           const hasSol = content.toLowerCase().includes('solution') ||
                          content.toLowerCase().includes('approach') ||
@@ -412,21 +413,21 @@ export class SpecCritic {
                          sections.has('solution') ||
                          sections.has('approach') ||
                          sections.has('design');
-          return { matched: !hasSol, suggestion: '添加 "Solution" 或 "解决方案" 章节' };
+          return { matched: !hasSol, suggestion: 'Agrega una sección "Solution" o "Solución"' };
         },
       },
       {
         id: 'missing-impact',
         category: 'completeness',
         severity: 'warning',
-        title: '缺少影响范围',
-        description: '文档应描述变更的影响范围',
+        title: 'Falta alcance del impacto',
+        description: 'El documento debe describir el alcance del impacto del cambio',
         check: (content) => {
           const hasImpact = content.toLowerCase().includes('impact') ||
                            content.toLowerCase().includes('scope') ||
                            content.toLowerCase().includes('影响') ||
                            content.toLowerCase().includes('范围');
-          return { matched: !hasImpact, suggestion: '添加 "Impact" 或 "影响范围" 说明' };
+          return { matched: !hasImpact, suggestion: 'Agrega una sección "Impact" o "Alcance del impacto"' };
         },
       },
       
@@ -435,28 +436,28 @@ export class SpecCritic {
         id: 'no-code-reference',
         category: 'feasibility',
         severity: 'info',
-        title: '缺少代码引用',
-        description: '设计文档应引用相关代码文件',
+        title: 'Falta referencia al código',
+        description: 'El documento de diseño debe referenciar archivos de código relacionados',
         check: (content) => {
           const hasCodeRef = /`[A-Za-z_][\w/.-]+\.(ts|js|go|py|java|tsx|jsx)`/.test(content) ||
                             content.includes('file://') ||
                             /\b(src|lib|pkg|internal)\//.test(content);
-          return { matched: !hasCodeRef, suggestion: '添加相关代码文件的引用以便实现' };
+          return { matched: !hasCodeRef, suggestion: 'Agrega referencias a archivos de código relacionados para su implementación' };
         },
       },
       {
         id: 'todo-placeholder',
         category: 'feasibility',
         severity: 'warning',
-        title: '存在 TODO 占位符',
-        description: '文档中存在未完成的 TODO 标记',
+        title: 'Hay marcadores TODO pendientes',
+        description: 'El documento contiene marcadores TODO sin completar',
         check: (content) => {
           const todoMatch = content.match(/\bTODO\b|\bFIXME\b|\bTBD\b|\bXXX\b/gi);
           if (todoMatch && todoMatch.length > 0) {
             return { 
               matched: true, 
-              details: `发现 ${todoMatch.length} 处 TODO/TBD 标记`,
-              suggestion: '完成所有 TODO 项后再提交审批' 
+              details: `Se encontraron ${todoMatch.length} marcadores TODO/TBD`,
+              suggestion: 'Completa todos los TODO antes de solicitar aprobación' 
             };
           }
           return { matched: false };
@@ -468,8 +469,8 @@ export class SpecCritic {
         id: 'auth-not-mentioned',
         category: 'security',
         severity: 'warning',
-        title: '未提及认证授权',
-        description: 'API 或用户相关变更应说明认证授权策略',
+        title: 'No se menciona autenticación/autorización',
+        description: 'Los cambios relacionados con API o usuarios deben explicar la estrategia de autenticación/autorización',
         check: (content) => {
           const isApi = content.toLowerCase().includes('api') ||
                        content.toLowerCase().includes('endpoint') ||
@@ -481,7 +482,7 @@ export class SpecCritic {
                          content.toLowerCase().includes('权限');
           return { 
             matched: isApi && !hasAuth, 
-            suggestion: '添加认证和授权相关说明' 
+            suggestion: 'Agrega una sección sobre autenticación y autorización' 
           };
         },
       },
@@ -489,8 +490,8 @@ export class SpecCritic {
         id: 'sensitive-data',
         category: 'security',
         severity: 'critical',
-        title: '涉及敏感数据',
-        description: '涉及敏感数据的变更需要特别说明安全措施',
+        title: 'Datos sensibles detectados',
+        description: 'Los cambios con datos sensibles requieren medidas de seguridad explícitas',
         check: (content, sections) => {
           // 如果已有安全章节，则认为已考虑(或至少不直接判为 critical)
           if (sections.has('security') || sections.has('safety') || sections.has('安全')) {
@@ -506,8 +507,8 @@ export class SpecCritic {
             if (pattern.test(content)) {
               return { 
                 matched: true, 
-                details: '文档涉及敏感数据且未发现安全章节，请确保有适当的安全措施',
-                suggestion: '添加 "Security" 或 "安全" 章节说明数据保护措施' 
+                details: 'El documento contiene datos sensibles y no tiene una sección de seguridad. Asegúrate de incluir medidas de seguridad apropiadas',
+                suggestion: 'Agrega una sección "Security" que describa las medidas de protección de datos' 
               };
             }
           }
@@ -520,8 +521,8 @@ export class SpecCritic {
         id: 'no-error-handling',
         category: 'edge_case',
         severity: 'warning',
-        title: '未提及错误处理',
-        description: '应说明异常和错误情况的处理方式',
+        title: 'No se menciona manejo de errores',
+        description: 'Debe explicar el manejo de excepciones y errores',
         check: (content) => {
           const hasError = content.toLowerCase().includes('error') ||
                           content.toLowerCase().includes('exception') ||
@@ -529,15 +530,15 @@ export class SpecCritic {
                           content.toLowerCase().includes('错误') ||
                           content.toLowerCase().includes('异常') ||
                           content.toLowerCase().includes('失败');
-          return { matched: !hasError, suggestion: '添加错误处理和异常情况的说明' };
+          return { matched: !hasError, suggestion: 'Agrega una sección sobre manejo de errores y excepciones' };
         },
       },
       {
         id: 'no-concurrency',
         category: 'edge_case',
         severity: 'info',
-        title: '未考虑并发场景',
-        description: '涉及数据更新的变更应考虑并发情况',
+        title: 'No se considera concurrencia',
+        description: 'Los cambios que involucran actualizaciones de datos deben considerar la concurrencia',
         check: (content) => {
           const isDataChange = content.toLowerCase().includes('update') ||
                               content.toLowerCase().includes('write') ||
@@ -550,7 +551,7 @@ export class SpecCritic {
                                 content.toLowerCase().includes('锁');
           return { 
             matched: isDataChange && !hasConcurrency, 
-            suggestion: '考虑添加并发控制相关说明' 
+            suggestion: 'Considera agregar una sección sobre control de concurrencia' 
           };
         },
       },
@@ -560,14 +561,14 @@ export class SpecCritic {
         id: 'too-short',
         category: 'clarity',
         severity: 'warning',
-        title: '文档过短',
-        description: '文档内容可能不够详细',
+        title: 'Documento muy corto',
+        description: 'El contenido del documento puede no ser lo suficientemente detallado',
         check: (content) => {
           const wordCount = content.split(/\s+/).length;
           return { 
             matched: wordCount < 100, 
-            details: `文档仅有约 ${wordCount} 个词`,
-            suggestion: '补充更多细节描述' 
+            details: `El documento tiene aproximadamente ${wordCount} palabras`,
+            suggestion: 'Agrega más detalles descriptivos' 
           };
         },
       },
@@ -575,8 +576,8 @@ export class SpecCritic {
         id: 'undefined-terms',
         category: 'clarity',
         severity: 'info',
-        title: '使用了未定义的术语',
-        description: '文档中使用了可能需要解释的专业术语',
+        title: 'Términos no definidos en uso',
+        description: 'El documento usa términos especializados que podrían necesitar explicación',
         check: (content) => {
           // 检查是否使用了缩写但没有解释
           const acronyms = content.match(/\b[A-Z]{2,6}\b/g);
@@ -586,8 +587,8 @@ export class SpecCritic {
             if (unexplained.length > 2) {
               return { 
                 matched: true, 
-                details: `发现多个可能需要解释的缩写: ${[...new Set(unexplained)].slice(0, 5).join(', ')}`,
-                suggestion: '确保首次使用时解释专业术语和缩写' 
+                details: `Se encontraron múltiples siglas que pueden necesitar explicación: ${[...new Set(unexplained)].slice(0, 5).join(', ')}`,
+                suggestion: 'Asegúrate de explicar términos especializados y siglas la primera vez que se usen' 
               };
             }
           }

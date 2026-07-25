@@ -21,19 +21,20 @@ import type {
 import { TaskParser } from './task-parser.js';
 import { CrossServiceManager } from './cross-service-manager.js';
 import matter from 'gray-matter';
+import type { ProjectContextRef } from './project-context.js';
 
 const execAsync = promisify(exec);
 
 export interface OpenSpecCliOptions {
-  cwd?: string;
+  ref: ProjectContextRef;
 }
 
 export class OpenSpecCli {
-  private cwd: string;
+  private ref: ProjectContextRef;
   private taskParser: TaskParser;
 
-  constructor(options?: OpenSpecCliOptions) {
-    this.cwd = options?.cwd || process.cwd();
+  constructor(options: OpenSpecCliOptions) {
+    this.ref = options.ref;
     this.taskParser = new TaskParser();
   }
 
@@ -41,7 +42,7 @@ export class OpenSpecCli {
    * 获取 openspec 目录路径
    */
   private getOpenSpecDir(): string {
-    return path.join(this.cwd, 'openspec');
+    return path.join(this.ref.current, 'openspec');
   }
 
   /**
@@ -100,7 +101,7 @@ export class OpenSpecCli {
     try {
       const { execSync } = await import('child_process');
       const remoteUrl = execSync('git remote get-url origin', { 
-        cwd: this.cwd, 
+        cwd: this.ref.current, 
         encoding: 'utf-8',
         timeout: 3000,
         stdio: ['pipe', 'pipe', 'pipe'],
@@ -117,7 +118,7 @@ export class OpenSpecCli {
 
     // 2. 尝试从 package.json 获取
     try {
-      const packagePath = path.join(this.cwd, 'package.json');
+      const packagePath = path.join(this.ref.current, 'package.json');
       const content = await fs.readFile(packagePath, 'utf-8');
       const data = JSON.parse(content) as { name?: string };
       if (data.name) {
@@ -129,7 +130,7 @@ export class OpenSpecCli {
 
     // 3. 尝试从 go.mod 获取
     try {
-      const goModPath = path.join(this.cwd, 'go.mod');
+      const goModPath = path.join(this.ref.current, 'go.mod');
       const content = await fs.readFile(goModPath, 'utf-8');
       const match = content.match(/^module\s+(.+)/m);
       if (match) {
@@ -144,7 +145,7 @@ export class OpenSpecCli {
     }
 
     // 4. 使用当前目录名
-    const dirName = path.basename(this.cwd);
+    const dirName = path.basename(this.ref.current);
     if (dirName && dirName !== '.' && dirName !== '/') {
       return { name: dirName, source: 'cwd' };
     }
@@ -368,7 +369,7 @@ export class OpenSpecCli {
     // 读取跨服务文档
     let crossService: CrossServiceInfo | undefined;
     try {
-      const crossServiceManager = new CrossServiceManager({ cwd: this.cwd });
+      const crossServiceManager = new CrossServiceManager({ ref: this.ref });
       crossService = await crossServiceManager.getCrossServiceInfo(changeId) || undefined;
     } catch {
       // 无跨服务配置
@@ -452,7 +453,7 @@ export class OpenSpecCli {
         requirementsCount,
         updatedAt: stats.mtime.toISOString(),
         content,
-        requirements: [], // TODO: 详细解析需求
+        requirements: [], // TODO: Analizar requisitos en detalle
       };
     } catch {
       return null;
@@ -469,7 +470,7 @@ export class OpenSpecCli {
     changeId = this.ensureSafeId(changeId, 'change');
     try {
       const flags = options?.strict ? '--strict' : '';
-      await execAsync(`openspec validate ${changeId} ${flags}`, { cwd: this.cwd });
+      await execAsync(`openspec validate ${changeId} ${flags}`, { cwd: this.ref.current });
       return { valid: true, errors: [] };
     } catch (error: any) {
       // 解析错误输出
@@ -499,7 +500,7 @@ export class OpenSpecCli {
   ): Promise<ValidationResult> {
     try {
       const flags = options?.strict ? '--strict' : '';
-      await execAsync(`openspec spec validate ${specId} ${flags}`, { cwd: this.cwd });
+      await execAsync(`openspec spec validate ${specId} ${flags}`, { cwd: this.ref.current });
       return { valid: true, errors: [] };
     } catch (error: any) {
       const errors: ValidationError[] = [];
@@ -527,13 +528,13 @@ export class OpenSpecCli {
   ): Promise<{ success: boolean; archivedPath: string; error?: string }> {
     try {
       const flags = options?.skipSpecs ? '--skip-specs --yes' : '--yes';
-      const { stdout, stderr } = await execAsync(`openspec archive ${changeId} ${flags}`, { cwd: this.cwd });
+      const { stdout, stderr } = await execAsync(`openspec archive ${changeId} ${flags}`, { cwd: this.ref.current });
 
       const date = new Date().toISOString().slice(0, 10);
       const archivedPath = `openspec/changes/archive/${date}-${changeId}`;
 
       // 验证归档目录是否存在
-      const fullPath = path.join(this.cwd, archivedPath);
+      const fullPath = path.join(this.ref.current, archivedPath);
       try {
         await fs.access(fullPath);
         return { success: true, archivedPath };

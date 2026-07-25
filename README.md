@@ -7,6 +7,7 @@ MCP (Model Context Protocol) server for [OpenSpec](https://github.com/Fission-AI
 ## Features
 
 - **MCP Tools**: Full OpenSpec CLI functionality exposed as MCP tools
+- **Runtime Project Path**: Set the working project dynamically with `openspec_set_project` — no need to pass the path at startup
 - **Review System**: Add, reply, resolve review comments on proposals/designs
 - **Task Tracking**: Parse tasks.md and track progress in real-time
 - **Approval Workflow**: Request, approve, and reject change proposals
@@ -64,6 +65,9 @@ claude mcp add openspec -- npx openspec-mcp /path/to/your/project
 ### 2. Use in conversation
 
 ```
+# Set the project path (required before any project operation)
+"Set the project to /path/to/my-project"
+
 # List all changes
 "List all openspec changes"
 
@@ -77,6 +81,17 @@ claude mcp add openspec -- npx openspec-mcp /path/to/your/project
 "Request approval for add-user-auth from @reviewer"
 ```
 
+### 3. Runtime Project Path
+
+This fork adds `openspec_set_project` to change the working project at runtime, avoiding hardcoded paths in the MCP configuration:
+
+```
+# From the agent conversation:
+openspec_set_project path="/path/to/your/project"
+```
+
+All subsequent tool calls use this path. Switch projects anytime without restarting the MCP server.
+
 ## Available Prompts (New!)
 
 Directly leverage your Client's AI capabilities (Claude, Codex) with context-aware prompts.
@@ -87,6 +102,12 @@ Directly leverage your Client's AI capabilities (Claude, Codex) with context-awa
 | `review-change`   | Intelligent review of changes with linked specs |
 
 ## Available Tools
+
+### Project
+
+| Tool                       | Description                                          |
+| -------------------------- | ---------------------------------------------------- |
+| `openspec_set_project`     | Set the active project directory at runtime          |
 
 ### Guides & Context
 
@@ -214,7 +235,9 @@ Approval records are stored in `openspec/approvals/<change-id>.json`.
 openspec-mcp [path] [options]
 
 Arguments:
-  path                    Project directory path (default: current directory)
+  path                    Project directory path (default: current directory).
+                          When used as an MCP server, set the project path
+                          at runtime with `openspec_set_project` instead.
 
 Options:
   --dashboard             Start web dashboard only (HTTP mode)
